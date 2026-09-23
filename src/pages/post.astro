@@ -1,6 +1,8 @@
 ---
 import PostMeta from "../components/PostMeta.astro";
+import ImmersiveTOC from "../components/control/ImmersiveTOC.astro";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import "../styles/immersive-reading.css";
 import {
   imageSuffixThWith,
   CDN_SUFFIX_PATTERNS,
@@ -625,4 +627,6 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       // swup:content:replace），该监听从未触发，且每进一次文章页就累积一个。
     })();
   </script>
+  <!-- 沉浸式阅读目录抽屉（仅文章页渲染；fixed 定位，置于页面末尾） -->
+  <ImmersiveTOC />
 </MainGridLayout>

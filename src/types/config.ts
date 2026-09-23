@@ -449,6 +449,16 @@ export interface Post {
   summary?: PostSummary;
   /** 文章操作栏：点赞/分享/打赏 */
   actionBar?: PostActionBar;
+  /** 沉浸式阅读（自 Firefly 迁移，2026-09-23） */
+  immersiveReading?: ImmersiveReading;
+}
+
+/** 沉浸式阅读配置：与 settings.yaml post.immersiveReading 及 scripts/assets/immersive-reading.ts 保持一致 */
+export interface ImmersiveReading {
+  enable?: boolean;
+  defaultOn?: boolean;
+  tocEnabled?: boolean;
+  tocPosition?: "left" | "right";
 }
 
 export interface PostActionBar {

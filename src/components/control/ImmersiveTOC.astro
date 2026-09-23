@@ -1,0 +1,40 @@
+---
+// 沉浸式阅读目录抽屉（自 Firefly ImmersiveTOC 迁移，2026-09-23）
+// 仅文章页渲染（post.astro）；目录复用 Ethereal 的 <table-of-contents>
+// Web Component（自动扫描正文 #content 标题）。沉浸态由 immersive-reading.js
+// 控制开合（.open 类），抽屉位置（left/right）由 data-position 决定。
+import { Icon } from "astro-icon/components";
+---
+
+<div
+  id="immersive-toc"
+  class="immersive-toc"
+  data-position="left"
+  aria-hidden="true"
+>
+  <div class="immersive-toc-header">
+    <span class="immersive-toc-title" th:text="#{common.toc}">目录</span>
+    <button
+      id="immersive-toc-toggle-btn"
+      type="button"
+      class="immersive-toc-toggle hide"
+      aria-label="Toggle Table of Contents"
+    >
+      <Icon name="material-symbols:close-rounded" class="mx-auto" />
+    </button>
+  </div>
+  <div class="immersive-toc-scroll" data-toc-scroll>
+    <table-of-contents
+      th:attr="data-max-depth=${theme.config?.post != null and theme.config?.post?.toc?.toc_depth != null ? theme.config?.post?.toc?.toc_depth : 2}"
+      th:data-empty-text="#{common.notoc}"
+    >
+      <!-- 高亮指示条（同 TOC widget 的结构）：沉浸目录的阅读位置高亮 -->
+      <div
+        id="active-indicator"
+        class="-z-10 absolute left-0 right-0 rounded-xl border-2 border-dashed border-transparent bg-(--primary)/10 transition-all duration-(--toc-transition-duration)"
+        style="opacity: 0"
+      >
+      </div>
+    </table-of-contents>
+  </div>
+</div>

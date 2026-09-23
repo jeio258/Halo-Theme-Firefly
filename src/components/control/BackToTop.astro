@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import ImmersiveReading from "./ImmersiveReading.astro";
 ---
 
 <div class="floating-controls block">
@@ -92,6 +93,9 @@ import { Icon } from "astro-icon/components";
       </a>
     </div>
   </div>
+  <!-- 沉浸式阅读入口（自 Firefly 迁移）：默认隐藏，immersive-reading.js 按
+       文章页 + 桌面端 + 后台开关控制显隐；进入沉浸态后切为退出图标 -->
+  <ImmersiveReading />
 </div>
 
 <style is:global>
@@ -637,3 +641,9 @@ import { Icon } from "astro-icon/components";
     // 重执行本脚本覆盖。原 swup:contentReplaced 监听删除（v3 事件名从未触发）。
   })();
 </script>
+
+<!-- 沉浸式阅读逻辑脚本（经典脚本，经 esbuild 管线编译自 src/scripts/assets/immersive-reading.ts） -->
+<script
+  src={`${import.meta.env.BASE_URL.replace(/\/+$/, "")}/assets/immersive-reading.js?v=${ASSET_VERSION}`}
+  defer
+  is:inline></script>

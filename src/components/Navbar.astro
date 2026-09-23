@@ -189,6 +189,18 @@ const className = Astro.props.class;
       >
         <LightDarkSwitch client:only="svelte" />
       </span>
+      <!-- 后台入口（自 Firefly 迁移，2026-09-23）：Halo Console 快捷入口，访客点击将进入登录 -->
+      <a
+        th:aria-label="#{nav.admin}"
+        aria-label="Admin"
+        href="/console"
+        data-no-swup
+        class="btn-plain scale-animation h-11 w-11 rounded-lg active:scale-90 hidden lg:flex items-center justify-center"
+      >
+        <span
+          class="icon-[material-symbols--admin-panel-settings] text-[1.25rem]"
+        ></span>
+      </a>
       <button
         th:aria-label="#{nav.menu}"
         th:name="#{nav.navMenu}"

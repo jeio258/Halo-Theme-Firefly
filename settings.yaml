@@ -1834,6 +1834,42 @@ spec:
                   aspectRatio: "1/1"
                   value: ""
                   help: "上传支付宝收款二维码图片（建议 1:1 正方形）"
+        - $formkit: group
+          name: immersiveReading
+          label: 沉浸式阅读
+          help: "文章页一键进入专注阅读模式（隐藏侧栏/装饰，正文限宽居中，配套目录抽屉）；仅桌面端（≥1024px）可用"
+          value:
+            enable: true
+            defaultOn: false
+            tocEnabled: true
+            tocPosition: left
+          children:
+            - $formkit: switch
+              name: enable
+              id: immersive_reading_enable
+              label: 启用
+              value: true
+            - $formkit: switch
+              name: defaultOn
+              id: immersive_reading_default_on
+              label: 进入文章页默认开启
+              value: false
+              help: "开启后访问文章页自动进入沉浸阅读模式"
+            - $formkit: switch
+              name: tocEnabled
+              id: immersive_reading_toc_enable
+              label: 显示目录抽屉
+              value: true
+            - $formkit: select
+              name: tocPosition
+              id: immersive_reading_toc_position
+              label: 目录位置
+              value: left
+              options:
+                - label: 左侧
+                  value: left
+                - label: 右侧
+                  value: right
     - group: extendPages
       label: 扩展页面
       formSchema:
