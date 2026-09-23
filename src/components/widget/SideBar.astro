@@ -1,5 +1,6 @@
 ---
 import Announcement from "./Announcement.astro";
+import Calendar from "./Calendar.astro";
 import Categories from "./Categories.astro";
 import Hitokoto from "./Hitokoto.astro";
 import MusicPlayer from "./MusicPlayer.astro";
@@ -73,6 +74,9 @@ const thClassappend = Astro.props["th:classappend"] || "";
         </div>
         <div class="contents" th:case="'hitokoto'">
           <Hitokoto class="onload-animation" />
+        </div>
+        <div class="contents" th:case="'calendar'">
+          <Calendar class="onload-animation" />
         </div>
         <div class="contents" th:case="'site-stats'">
           <SiteStats class="onload-animation" />

@@ -1,5 +1,6 @@
 ---
 import ConfigCarrier from "../components/ConfigCarrier.astro";
+import SakuraEffect from "../components/SakuraEffect.astro";
 import WelcomePopup from "../components/control/WelcomePopup.astro";
 import WaveEffect from "../components/WaveEffect.astro";
 import {
@@ -668,5 +669,7 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
     <script>
       import "../scripts/app";
     </script>
+    <!-- 樱花特效（后台开关 effects.sakura.enable 控制是否加载） -->
+    <SakuraEffect />
   </body>
 </html>

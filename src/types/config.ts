@@ -8,6 +8,7 @@ export interface ThemeConfig {
   extendPages: ExtendPages;
   post: Post;
   footer: Footer;
+  effects: Effects;
   links: Links;
   external_link: ExternalLink;
 }
@@ -422,6 +423,7 @@ export interface Widget {
   show_visits?: boolean;
   show_upvotes?: boolean;
   show_comments?: boolean;
+  show_heatmap?: boolean;
   tencent_key?: string;
   default_city?: string;
   fallback_text?: string;
@@ -597,3 +599,24 @@ export interface ExternalLink {
 
 export type LIGHT_DARK_MODE =
   typeof LIGHT_MODE | typeof DARK_MODE | typeof AUTO_MODE;
+
+// ========== 特效（自 Firefly 迁移，2026-09-23）==========
+export interface Effects {
+  sakura?: Sakura;
+}
+
+/** 樱花飘落配置：与 settings.yaml effects.sakura 及 scripts/assets/sakura.ts 保持一致 */
+export interface Sakura {
+  enable?: boolean;
+  sakuraNum?: number;
+  limitTimes?: number;
+  size?: { min?: number; max?: number };
+  opacity?: { min?: number; max?: number };
+  speed?: {
+    horizontal?: { min?: number; max?: number };
+    vertical?: { min?: number; max?: number };
+    rotation?: number;
+    fadeSpeed?: number;
+  };
+  zIndex?: number;
+}

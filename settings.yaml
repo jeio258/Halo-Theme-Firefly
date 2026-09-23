@@ -928,6 +928,8 @@ spec:
                       value: weather
                     - label: 最近日程
                       value: schedule
+                    - label: 日历
+                      value: calendar
                     - label: 自定义HTML
                       value: html
                 - $formkit: checkbox
@@ -995,6 +997,13 @@ spec:
                   preserve: true
                   label: 显示评论数
                   value: false
+                - $formkit: checkbox
+                  if: "$value.value === 'calendar'"
+                  name: show_heatmap
+                  key: widget_calendar_show_heatmap
+                  preserve: true
+                  label: 显示年度热力图
+                  value: true
                 - $formkit: date
                   if: "$value.value === 'site-stats'"
                   name: site_start_date
@@ -1163,6 +1172,8 @@ spec:
                       value: weather
                     - label: 最近日程
                       value: schedule
+                    - label: 日历
+                      value: calendar
                     - label: 自定义HTML
                       value: html
                 - $formkit: checkbox
@@ -1230,6 +1241,13 @@ spec:
                   preserve: true
                   label: 显示评论数
                   value: false
+                - $formkit: checkbox
+                  if: "$value.value === 'calendar'"
+                  name: show_heatmap
+                  key: right_widget_calendar_show_heatmap
+                  preserve: true
+                  label: 显示年度热力图
+                  value: true
                 - $formkit: date
                   if: "$value.value === 'site-stats'"
                   name: site_start_date
@@ -2415,3 +2433,142 @@ spec:
               value: theme
             - label: Halo 默认
               value: halo
+    - group: effects
+      label: 特效
+      formSchema:
+        - $formkit: group
+          name: sakura
+          label: 樱花飘落
+          help: "全屏樱花飘落特效（自 Firefly 迁移），默认关闭；开启后需配合主题构建产物中 sakura.js 生效"
+          children:
+            - $formkit: switch
+              name: enable
+              id: sakura_enable
+              label: 启用樱花特效
+              value: false
+            - $formkit: number
+              name: sakuraNum
+              id: sakura_num
+              label: 樱花数量
+              value: 21
+              min: 1
+              max: 200
+              step: 1
+            - $formkit: number
+              name: limitTimes
+              id: sakura_limit_times
+              label: 越界循环次数
+              value: -1
+              min: -1
+              max: 100
+              step: 1
+              help: "花瓣飘出屏幕后的重置次数，-1 为无限循环"
+            - $formkit: group
+              name: size
+              label: 尺寸倍率
+              children:
+                - $formkit: number
+                  name: min
+                  id: sakura_size_min
+                  label: 最小
+                  value: 0.5
+                  min: 0.1
+                  max: 3
+                  step: 0.1
+                - $formkit: number
+                  name: max
+                  id: sakura_size_max
+                  label: 最大
+                  value: 1.1
+                  min: 0.1
+                  max: 3
+                  step: 0.1
+            - $formkit: group
+              name: opacity
+              label: 不透明度
+              children:
+                - $formkit: number
+                  name: min
+                  id: sakura_opacity_min
+                  label: 最小
+                  value: 0.3
+                  min: 0.1
+                  max: 1
+                  step: 0.05
+                - $formkit: number
+                  name: max
+                  id: sakura_opacity_max
+                  label: 最大
+                  value: 0.9
+                  min: 0.1
+                  max: 1
+                  step: 0.05
+            - $formkit: group
+              name: speed
+              label: 速度
+              children:
+                - $formkit: group
+                  name: horizontal
+                  label: 水平速度
+                  children:
+                    - $formkit: number
+                      name: min
+                      id: sakura_speed_h_min
+                      label: 最小
+                      value: -1.7
+                      min: -5
+                      max: 5
+                      step: 0.1
+                    - $formkit: number
+                      name: max
+                      id: sakura_speed_h_max
+                      label: 最大
+                      value: -1.2
+                      min: -5
+                      max: 5
+                      step: 0.1
+                - $formkit: group
+                  name: vertical
+                  label: 垂直速度
+                  children:
+                    - $formkit: number
+                      name: min
+                      id: sakura_speed_v_min
+                      label: 最小
+                      value: 1.5
+                      min: 0
+                      max: 10
+                      step: 0.1
+                    - $formkit: number
+                      name: max
+                      id: sakura_speed_v_max
+                      label: 最大
+                      value: 2.2
+                      min: 0
+                      max: 10
+                      step: 0.1
+                - $formkit: number
+                  name: rotation
+                  id: sakura_speed_rotation
+                  label: 旋转速度
+                  value: 0.03
+                  min: 0
+                  max: 1
+                  step: 0.01
+                - $formkit: number
+                  name: fadeSpeed
+                  id: sakura_speed_fade
+                  label: 消失速度
+                  value: 0.03
+                  min: 0.001
+                  max: 1
+                  step: 0.01
+                  help: "不应大于最小不透明度"
+            - $formkit: number
+              name: zIndex
+              id: sakura_zindex
+              label: 层级 (z-index)
+              value: 100
+              min: 0
+              max: 9999
+              step: 1
