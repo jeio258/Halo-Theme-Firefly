@@ -228,6 +228,7 @@ spec:
                 wallpaperMode: true
                 wallpaperSettings: true
                 transparent: true
+                effects: true
               children:
                 - $formkit: switch
                   name: enable
@@ -284,6 +285,14 @@ spec:
                   label: 透明设置调节
                   value: true
                   help: "仅横幅「全屏透明」模式下显示，访客可调节壁纸透明度 / 模糊度 / 卡片透明度"
+                - $formkit: switch
+                  name: effects
+                  id: visitorStyle_effects
+                  key: visitorStyle_effects
+                  if: "$get(visitorStyle_enable).value"
+                  label: 特效切换
+                  value: true
+                  help: "开启后访客可在面板「特效」分区开关樱花飘落（需先在「特效」设置中启用樱花）"
         - $formkit: group
           name: floatingButtons
           label: 浮动导航按钮

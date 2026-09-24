@@ -158,6 +158,7 @@ export interface VisitorSwitches {
   transparent: boolean;
   wallpaperMode: boolean;
   wallpaperSettings: boolean;
+  effects: boolean;
 }
 
 function getCarrier(): HTMLElement | null {
@@ -182,6 +183,7 @@ function readVisitorSwitches(): VisitorSwitches {
     transparent: enable && carrierBool("visitorTransparent", true),
     wallpaperMode: enable && carrierBool("visitorWallpaperMode", true),
     wallpaperSettings: enable && carrierBool("visitorWallpaperSettings", true),
+    effects: enable && carrierBool("visitorEffects", true),
   };
 }
 
@@ -590,4 +592,31 @@ export function resetWave(): void {
 export function resetBannerTitle(): void {
   localStorage.removeItem("bannerTitle");
   applyBannerTitle(getDefaultBannerTitle());
+}
+
+/* ── 樱花特效（前台面板「特效」分区开关；sakura.js 监听 sakuraToggle 启停） ── */
+
+/** 后台 effects.sakura.enable 默认值（ConfigCarrier data-sakura-default） */
+export function getDefaultSakuraEnabled(): boolean {
+  return carrierBool("sakuraDefault", false);
+}
+
+export function getStoredSakuraEnabled(): boolean {
+  if (!getVisitorSwitches().effects) return getDefaultSakuraEnabled();
+  const stored = localStorage.getItem("sakuraEnabled");
+  return stored == null ? getDefaultSakuraEnabled() : stored === "true";
+}
+
+/** 切换樱花：写 localStorage + data-sakura-enabled，并派发 sakuraToggle 供 sakura.js 启停 */
+export function setSakuraEnabled(enabled: boolean): void {
+  localStorage.setItem("sakuraEnabled", String(enabled));
+  document.documentElement.setAttribute("data-sakura-enabled", String(enabled));
+  window.dispatchEvent(
+    new CustomEvent("sakuraToggle", { detail: { enabled } }),
+  );
+}
+
+export function resetSakura(): void {
+  localStorage.removeItem("sakuraEnabled");
+  setSakuraEnabled(getDefaultSakuraEnabled());
 }

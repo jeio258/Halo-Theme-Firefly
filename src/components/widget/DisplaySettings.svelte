@@ -34,6 +34,10 @@
     resetWallpaperMode,
     resetWave,
     resetBannerTitle,
+    getDefaultSakuraEnabled,
+    getStoredSakuraEnabled,
+    setSakuraEnabled,
+    resetSakura,
     type PostListLayoutMode,
     type BannerDisplayMode,
   } from "../../utils/setting-utils";
@@ -81,18 +85,29 @@
     switches.transparent && wallpaperMode === "transparent",
   );
 
-  /* ── 面板 Tab（外观 / 壁纸，参考 firefly） ── */
+  /* ── 面板 Tab（外观 / 壁纸 / 特效，参考 firefly） ── */
   const hasAppearanceContent = $derived(!hueFixed || showLayout || showCardStyle);
   const hasWallpaperContent = $derived(showWallpaperMode || showWallpaper);
-  const showTabBar = $derived(hasAppearanceContent && hasWallpaperContent);
-  let activeTab = $state<"appearance" | "wallpaper">("appearance");
+  // 特效分区：访客特效开关 + 后台已启用樱花（后台为总开关，未启用则无法开启）
+  const defaultSakuraEnabled = getDefaultSakuraEnabled();
+  const hasEffectsContent = $derived(switches.effects && defaultSakuraEnabled);
+  const visibleTabCount = $derived(
+    [hasAppearanceContent, hasWallpaperContent, hasEffectsContent].filter(Boolean)
+      .length,
+  );
+  const showTabBar = $derived(visibleTabCount > 1);
+  let activeTab = $state<"appearance" | "wallpaper" | "effects">("appearance");
 
   // 当前 Tab 不可用时自动切换到可用的 Tab
   $effect(() => {
-    if (hasWallpaperContent && !hasAppearanceContent) {
-      activeTab = "wallpaper";
-    } else if (!hasWallpaperContent) {
-      activeTab = "appearance";
+    if (
+      (activeTab === "appearance" && !hasAppearanceContent) ||
+      (activeTab === "wallpaper" && !hasWallpaperContent) ||
+      (activeTab === "effects" && !hasEffectsContent)
+    ) {
+      if (hasAppearanceContent) activeTab = "appearance";
+      else if (hasWallpaperContent) activeTab = "wallpaper";
+      else if (hasEffectsContent) activeTab = "effects";
     }
   });
 
@@ -117,6 +132,8 @@
   let cardHoverLift = $state(getStoredCardHoverLift());
   let navbarBlur = $state(getStoredNavbarBlur());
   let postListMasonry = $state(getStoredPostListMasonry());
+  // 樱花特效（前台面板「特效」分区）
+  let sakuraEnabled = $state(getStoredSakuraEnabled());
   // 面板里透明度类参数以百分比展示（存储为 0–1）
   const storedWallpaper = getStoredWallpaperParams();
   let wallpaperOpacity = $state(Math.round(storedWallpaper.opacity * 100));
@@ -135,6 +152,7 @@
       navbarBlur !== defaultNavbarBlur ||
       postListMasonry !== defaultPostListMasonry,
   );
+  const dirtySakura = $derived(sakuraEnabled !== defaultSakuraEnabled);
   const showMasonry = $derived(showCardStyle && layout === "grid");
   const dirtyWallpaper = $derived(
     wallpaperOpacity !== Math.round(defaultWallpaper.opacity * 100) ||
@@ -170,7 +188,7 @@
       value: "transparent",
       icon: "icon-[material-symbols--full-coverage-outline-rounded]",
       key: "display.wallpaperModeTransparent",
-      label: "全屏透明",
+      label: "覆盖透明",
     },
   ];
 
@@ -182,6 +200,16 @@
   function toggleWave() {
     wave = !wave;
     setWave(wave);
+  }
+
+  function toggleSakura() {
+    sakuraEnabled = !sakuraEnabled;
+    setSakuraEnabled(sakuraEnabled);
+  }
+
+  function resetSakuraBtn() {
+    resetSakura();
+    sakuraEnabled = defaultSakuraEnabled;
   }
 
   function toggleBannerTitle() {
@@ -265,6 +293,12 @@
               role="tab" aria-selected={activeTab === "wallpaper"} on:click={() => (activeTab = "wallpaper")}>
         <span>{t("display.tabWallpaper", "壁纸")}</span>
       </button>
+      {#if hasEffectsContent}
+        <button type="button" class="panel-tab" class:panel-tab-on={activeTab === "effects"}
+                role="tab" aria-selected={activeTab === "effects"} on:click={() => (activeTab = "effects")}>
+          <span>{t("display.tabEffects", "特效")}</span>
+        </button>
+      {/if}
     </div>
   {/if}
 
@@ -438,6 +472,26 @@
           <input aria-label={t("display.wallpaperCardAlpha", "卡片透明度")} type="range" min="30" max="100" step="5"
                  bind:value={wallpaperCardAlpha} on:input={applyCardAlpha} class="wallpaper-slider">
         </div>
+      {/if}
+    {/if}
+
+    {#if activeTab === "effects"}
+      <!-- 特效：樱花飘落开关（sakura.js 监听 sakuraToggle 启停） -->
+      {#if hasEffectsContent}
+        <div class="section-title mb-3">
+          {t("display.effectsSettings", "特效设置")}
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+                  class:opacity-0={!dirtySakura} class:pointer-events-none={!dirtySakura} on:click={resetSakuraBtn}>
+            <div class="text-(--btn-content)">
+              <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
+            </div>
+          </button>
+        </div>
+        <button type="button" class="toggle-row" class:toggle-on={sakuraEnabled} role="switch" aria-checked={sakuraEnabled} on:click={toggleSakura}>
+          <span class="icon-[mdi--flower-poppy] toggle-icon"></span>
+          <span class="toggle-label">{t("display.sakuraEffect", "樱花飘落")}</span>
+          <span class="toggle" class:toggle-on={sakuraEnabled}><span class="toggle-knob"></span></span>
+        </button>
       {/if}
     {/if}
   </div>

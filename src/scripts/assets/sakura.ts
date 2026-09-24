@@ -40,7 +40,7 @@ function resolveConfig(): SakuraConfig {
     effects?: { sakura?: Partial<SakuraConfig> };
   } | null;
   const cfg = themeConfig?.effects?.sakura ?? {};
-  return {
+  const resolved: SakuraConfig = {
     ...DEFAULT_CONFIG,
     ...cfg,
     size: { ...DEFAULT_CONFIG.size, ...cfg.size },
@@ -55,6 +55,22 @@ function resolveConfig(): SakuraConfig {
       vertical: { ...DEFAULT_CONFIG.speed.vertical, ...cfg.speed?.vertical },
     },
   };
+  // 访客面板开关（localStorage sakuraEnabled）优先于后台默认
+  const stored = readStoredEnabled();
+  if (stored !== null) {
+    resolved.enable = stored;
+  }
+  return resolved;
+}
+
+function readStoredEnabled(): boolean | null {
+  try {
+    const v = localStorage.getItem("sakuraEnabled");
+    if (v === null) return null;
+    return v === "true";
+  } catch {
+    return null;
+  }
 }
 
 // sakura.js 位于 /themes/{name}/assets/，花瓣图片在同目录 images/effects/ 下
@@ -418,7 +434,8 @@ function initSakura(cfg: SakuraConfig) {
   }
 }
 
-// 入口：幂等初始化（避免 Swup 切页重跑脚本时重复初始化）
+// 入口：幂等初始化 + 监听前台显示设置面板的樱花切换事件（Firefly 契约：
+// DisplaySettings 写 localStorage sakuraEnabled 并派发 sakuraToggle）
 (function setupSakura() {
   const w = window as unknown as { sakuraInitialized?: boolean };
   if (w.sakuraInitialized) {
@@ -428,4 +445,17 @@ function initSakura(cfg: SakuraConfig) {
 
   const cfg = resolveConfig();
   initSakura(cfg);
+
+  window.addEventListener("sakuraToggle", (e: Event) => {
+    const detail = (e as CustomEvent<{ enabled: boolean }>).detail;
+    if (!detail) return;
+    const mgr = globalSakuraManager;
+    if (!mgr) return;
+    if (detail.enabled && !mgr.getIsRunning()) {
+      mgr.config.enable = true;
+      void mgr.init();
+    } else if (!detail.enabled && mgr.getIsRunning()) {
+      mgr.stop();
+    }
+  });
 })();
