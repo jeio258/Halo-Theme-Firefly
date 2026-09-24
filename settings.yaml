@@ -33,7 +33,7 @@ spec:
           name: bannerLayout
           label: Banner 布局
           value:
-            displayMode: banner
+            displayMode: transparent
             wallpaperOpacity: 0.8
             wallpaperBlur: 10
             cardOpacity: 0.6
@@ -42,7 +42,7 @@ spec:
               name: displayMode
               id: banner_displayMode
               label: 模式
-              value: banner
+              value: transparent
               help: "关闭/纯色模式：不显示横幅，页面为纯色背景；横幅模式：非首页显示 35vh 横幅、首页延伸至 65vh；全屏模式：非首页同横幅模式，首页 banner 占满整屏（100vh）；全屏透明：无横幅、整屏壁纸作为页面背景，配合「高级材质」使内容与组件卡片磨砂透明"
               options:
                 - label: 关闭/纯色模式
