@@ -281,3 +281,35 @@ if (!window.__navbarPanelToggleBound) {
     { capture: true },
   );
 })();
+
+// ===== 横幅/全屏壁纸模式的导航栏滚动变实（对齐 Firefly semifull）=====
+// 顶部（scrollY <= 阈值）导航栏透明露出壁纸；滚动后 body.navbar-scrolled
+// 恢复玻璃背景（CSS 见 components.css）。rAF 节流，passive 监听。
+(function () {
+  var NAVBAR_SCROLL_THRESHOLD = 50;
+  var ticking = false;
+
+  function updateNavbarScrolled() {
+    ticking = false;
+    var scrolled =
+      (window.pageYOffset || document.documentElement.scrollTop) >
+      NAVBAR_SCROLL_THRESHOLD;
+    document.body.classList.toggle("navbar-scrolled", scrolled);
+  }
+
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(updateNavbarScrolled);
+  }
+
+  if (!window.__navbarScrolledBound) {
+    window.__navbarScrolledBound = true;
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // Swup 换页后重新按当前滚动位置校正（换页可能保留/重置滚动）
+    document.addEventListener("swup:contentReplaced", function () {
+      requestAnimationFrame(updateNavbarScrolled);
+    });
+  }
+  updateNavbarScrolled();
+})();
