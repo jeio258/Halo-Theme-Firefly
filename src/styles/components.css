@@ -683,12 +683,15 @@
     background-color: var(--card-bg) !important;
   }
 
-  /* 横幅/全屏壁纸模式：顶部导航栏透明（露出壁纸），滚动后恢复玻璃背景
-     （对齐 Firefly 的 semifull 行为）——仅壁纸模式下生效，纯色/透明模式不受影响 */
+  /* 横幅/全屏/全屏透明壁纸模式：顶部导航栏透明（露出壁纸），滚动后恢复玻璃背景
+     （对齐 Firefly 的 semifull 行为）——仅壁纸模式下生效，纯色模式不受影响 */
   html[data-banner-display="banner"]
     body.navbar-blur-enabled:not(.navbar-scrolled)
     .navbar-blur,
   html[data-banner-display="fullscreen"]
+    body.navbar-blur-enabled:not(.navbar-scrolled)
+    .navbar-blur,
+  html[data-banner-display="transparent"]
     body.navbar-blur-enabled:not(.navbar-scrolled)
     .navbar-blur {
     background-color: transparent !important;
@@ -698,7 +701,10 @@
     border-bottom-color: transparent !important;
   }
   html[data-banner-display="banner"] body.navbar-blur-enabled .navbar-blur,
-  html[data-banner-display="fullscreen"] body.navbar-blur-enabled .navbar-blur {
+  html[data-banner-display="fullscreen"] body.navbar-blur-enabled .navbar-blur,
+  html[data-banner-display="transparent"]
+    body.navbar-blur-enabled
+    .navbar-blur {
     transition:
       background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
       backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1),
