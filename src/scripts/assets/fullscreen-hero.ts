@@ -49,7 +49,7 @@
   // 全屏壁纸模糊斜坡：0 → max（max = 面板「模糊度」滑块值，body 上的
   // --transparent-wallpaper-blur；未设过则为默认 10px）。2px 量化 + 记忆化，
   // 避免模糊逐帧重栅格化（对齐 Firefly syncFullscreenBlur 策略）。
-  function applyBlurRamp(scrollY, active) {
+  function applyBlurRamp(scrollY: number, active: boolean) {
     const html = document.documentElement;
     let value = "0px";
     if (active) {
