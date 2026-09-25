@@ -247,6 +247,21 @@
     ) !important;
   }
 
+  /* 全屏壁纸钉在视口（对齐 Firefly：wallpaper-fullscreen 为 position:fixed）：
+     内容在壁纸之上滚动，壁纸常驻背景而非随内容滚出首屏。
+     注：必须 !important —— #banner-wrapper 的 DOM 类含 tailwind .absolute
+     （utilities 层晚于 components 层，层序优先于特异性），
+     与 transparent 模式 wrapper 规则（position:fixed!important）同机制 */
+  html[data-banner-display="fullscreen"] #banner-wrapper {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    /* 抵消 .is-home.enable-banner 的延伸量（--tw-translate-y: --banner-height-extend，
+       全屏下为 65vh）——该规则特异性（1-2-0）高于本规则，必须 !important */
+    translate: 0 !important;
+  }
+
   /* 全屏首页向下箭头（#scroll-down-indicator）的落点间距：网格顶边向上留出
      --banner-home-content-gap，使"页面背景顶部边缘"（banner 底边，100vh）对齐
      视口顶部而非内容/组件顶边贴住视口顶。间距值由 scroll-manager.ts 的
@@ -316,10 +331,10 @@
     );
   }
 
-  html[data-banner-display="fullscreen"] body.is-home #wave-container {
-    transform: translateY(
-      calc(-100% + var(--wave-cover-offset) + var(--banner-height-extend) + 20%)
-    );
+  /* 全屏模式不需要水波纹（对齐 Firefly：fullscreen 下波形均 display:none，
+     壁纸 fixed 钉屏后波形会悬浮在视口底部）；!important 防 DOM 显示类工具覆盖 */
+  html[data-banner-display="fullscreen"] #wave-container {
+    display: none !important;
   }
 
   /* 加载早期（页面未就绪）wave 不过渡：避免 is-home 初始校正时 transform
@@ -364,6 +379,12 @@
     transition: opacity var(--dur-banner, 700ms) ease;
   }
 
+  /* 全屏首页 hero 标题由逐帧内联写入（translateY+opacity，见 fullscreen-hero 脚本），
+     视差期间禁用类驱动的 opacity 过渡避免与逐帧写入冲突 */
+  html[data-banner-display="fullscreen"] body.is-home #banner-overlay {
+    transition: none !important;
+  }
+
   #banner-overlay.banner-text-hidden {
     opacity: 0;
     pointer-events: none;
@@ -383,6 +404,12 @@
     color: rgb(255 255 255 / 0.85);
     cursor: pointer;
     transition: color 0.3s ease;
+  }
+
+  /* 全屏 banner 为 fixed → 指示器同样钉在视口（对齐 Firefly：
+     wallpaper-fullscreen 下 position:fixed bottom:5rem），随滚动常驻 */
+  html[data-banner-display="fullscreen"] #scroll-down-indicator {
+    position: fixed;
   }
 
   body:not(.is-home) #scroll-down-indicator {
