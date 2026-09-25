@@ -270,9 +270,9 @@ const calendarDataScript = `<script type="application/json" id="calendar-post-da
             ? "background-color: var(--btn-plain-bg-hover)"
             : `background-color: var(--primary); opacity: ${opacityLevels[level]}`;
         const tooltip = calendarHeatmapWeekTemplate
-          .replace("{month}", month + 1)
-          .replace("{week}", week + 1)
-          .replace("{count}", count);
+          .replace("%month%", month + 1)
+          .replace("%week%", week + 1)
+          .replace("%count%", count);
         cellsHtml += `<div class="heatmap-cell rounded-sm" style="${bgStyle}" data-tooltip="${tooltip}" data-month="${month}"></div>`;
       }
     }
