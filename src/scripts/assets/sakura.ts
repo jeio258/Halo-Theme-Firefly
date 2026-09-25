@@ -73,15 +73,18 @@ function readStoredEnabled(): boolean | null {
   }
 }
 
-// sakura.js 位于 /themes/{name}/assets/，花瓣图片在同目录 images/effects/ 下
-function resolveImageUrl(): string {
+// sakura.js 位于 /themes/{name}/assets/，花瓣图片在同目录 images/effects/ 下。
+// 注意：只能在脚本首次执行时计算（document.currentScript 仅执行期有效），
+// 缓存到模块级常量——事件回调（sakuraToggle）里 currentScript 为 null，
+// 若此时再调用会拿到错误 fallback 路径导致重启失败。
+const SAKURA_IMAGE_URL = (() => {
   const scriptSrc = (document.currentScript as HTMLScriptElement | null)?.src;
   if (scriptSrc) {
     const base = scriptSrc.substring(0, scriptSrc.lastIndexOf("/"));
     return base + "/images/effects/sakura.png";
   }
   return "/assets/images/effects/sakura.png";
-}
+})();
 
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
@@ -281,7 +284,7 @@ class MainThreadSakuraManager implements SakuraManagerLike {
 
     try {
       this.img = new Image();
-      this.img.src = resolveImageUrl();
+      this.img.src = SAKURA_IMAGE_URL;
 
       await new Promise<void>((resolve, reject) => {
         if (!this.img) {
