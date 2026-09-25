@@ -331,6 +331,20 @@
     );
   }
 
+  /* 全屏壁纸参数（对齐 Firefly + 访客面板扩展）：
+     - 透明度：--fs-wallpaper-opacity（面板「壁纸透明度」，与透明模式同参数不同回退：
+       透明 0.8 / 全屏 1，未改动面板时全屏恒不透明对齐 Firefly）。
+     - 模糊：--fullscreen-wallpaper-blur 由 fullscreen-hero.js 滚动斜坡驱动
+       （首页 0→max，max = 面板「模糊度」值）；scale 裁掉模糊边缘（同透明模式机制） */
+  html[data-banner-display="fullscreen"] #banner img,
+  html[data-banner-display="fullscreen"] #banner-mobile img,
+  html[data-banner-display="fullscreen"] #banner video,
+  html[data-banner-display="fullscreen"] #banner-mobile video {
+    opacity: var(--fs-wallpaper-opacity, 1);
+    filter: blur(var(--fullscreen-wallpaper-blur, 0px));
+    transform: scale(1.06);
+  }
+
   /* 全屏模式不需要水波纹（对齐 Firefly：fullscreen 下波形均 display:none，
      壁纸 fixed 钉屏后波形会悬浮在视口底部）；!important 防 DOM 显示类工具覆盖 */
   html[data-banner-display="fullscreen"] #wave-container {

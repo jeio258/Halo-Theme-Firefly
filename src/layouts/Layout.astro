@@ -434,7 +434,7 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
   <body
     class:list={["relative min-h-screen transition", { "is-home": isHomePage }]}
     th:classappend="${(bannerHasMedia ? ' enable-banner' : '') + (theme.config?.style?.styleSwitches?.navbar_blur ? ' navbar-blur-enabled' : '') + (theme.config?.style?.styleSwitches?.card_hover_lift != false ? ' card-hover-lift-enabled' : '')}"
-    th:style="|--bannerOffset: ${theme.config?.style?.bannerStyle?.position == 'top' ? '30vh' : (theme.config?.style?.bannerStyle?.position == 'bottom' ? '0' : '15vh')}; --transparent-wallpaper-opacity: ${theme.config?.layout?.bannerLayout?.wallpaperOpacity ?: 0.8}; --transparent-wallpaper-blur: ${theme.config?.layout?.bannerLayout?.wallpaperBlur ?: 10}px; --transparent-card-alpha: ${theme.config?.layout?.bannerLayout?.cardOpacity ?: 0.6};|"
+    th:style="|--bannerOffset: ${theme.config?.style?.bannerStyle?.position == 'top' ? '30vh' : (theme.config?.style?.bannerStyle?.position == 'bottom' ? '0' : '15vh')}; --transparent-wallpaper-opacity: ${theme.config?.layout?.bannerLayout?.wallpaperOpacity ?: 0.8}; --fs-wallpaper-opacity: ${theme.config?.layout?.bannerLayout?.wallpaperOpacity ?: 1}; --transparent-wallpaper-blur: ${theme.config?.layout?.bannerLayout?.wallpaperBlur ?: 10}px; --transparent-card-alpha: ${theme.config?.layout?.bannerLayout?.cardOpacity ?: 0.6};|"
     data-overlayscrollbars-initialize
   >
     <ConfigCarrier />
@@ -495,6 +495,8 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
               "--transparent-wallpaper-opacity",
               String(opacity),
             );
+            // 同一访客值同步全屏模式变量（默认回退不同：透明 0.8 / 全屏 1）
+            body.style.setProperty("--fs-wallpaper-opacity", String(opacity));
           }
           if (wBlur != null) {
             body.style.setProperty(

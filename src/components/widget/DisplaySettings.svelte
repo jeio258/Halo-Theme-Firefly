@@ -89,8 +89,11 @@
     showWallpaperMode &&
     switches.wallpaperSettings &&
     (defaultWave || defaultBannerTitle);
+  // 壁纸参数区（透明度/模糊度）在透明与全屏模式均可调（对齐 Firefly：全屏有
+  // 模糊斜坡；透明有壁纸透明度；卡片透明度仅透明模式）
   const showWallpaper = $derived(
-    switches.transparent && wallpaperMode === "transparent",
+    switches.transparent &&
+      (wallpaperMode === "transparent" || wallpaperMode === "fullscreen"),
   );
 
   /* ── 面板 Tab（外观 / 壁纸 / 特效，参考 firefly） ── */
@@ -515,6 +518,8 @@
           <input aria-label={t("display.wallpaperBlur", "模糊度")} type="range" min="0" max="24" step="1"
                  bind:value={wallpaperBlur} on:input={applyBlur} class="wallpaper-slider">
         </div>
+        <!-- 卡片透明度仅透明模式（全屏卡片为不透明，无宿主） -->
+        {#if wallpaperMode === "transparent"}
         <div class="slider-row">
           <div class="slider-label">
             <span>{t("display.wallpaperCardAlpha", "卡片透明度")}</span>
@@ -523,6 +528,7 @@
           <input aria-label={t("display.wallpaperCardAlpha", "卡片透明度")} type="range" min="30" max="100" step="5"
                  bind:value={wallpaperCardAlpha} on:input={applyCardAlpha} class="wallpaper-slider">
         </div>
+        {/if}
       {/if}
     {/if}
 

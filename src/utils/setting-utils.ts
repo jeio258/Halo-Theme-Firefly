@@ -396,6 +396,8 @@ export function applyWallpaperParams(params: WallpaperParams): void {
     "--transparent-wallpaper-opacity",
     String(params.opacity),
   );
+  // 同一访客值同步全屏模式（默认回退不同：透明 0.8 / 全屏 1，见 Layout.astro）
+  body.style.setProperty("--fs-wallpaper-opacity", String(params.opacity));
   body.style.setProperty("--transparent-wallpaper-blur", `${params.blur}px`);
   body.style.setProperty("--transparent-card-alpha", String(params.cardAlpha));
 }
