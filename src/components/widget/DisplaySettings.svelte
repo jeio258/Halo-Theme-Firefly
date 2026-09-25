@@ -38,6 +38,14 @@
     getStoredSakuraEnabled,
     setSakuraEnabled,
     resetSakura,
+    getDefaultCardBorderEnabled,
+    getStoredCardBorderEnabled,
+    setCardBorderEnabled,
+    resetCardBorder,
+    getDefaultCardFollowThemeEnabled,
+    getStoredCardFollowThemeEnabled,
+    setCardFollowThemeEnabled,
+    resetCardFollowTheme,
     type PostListLayoutMode,
     type BannerDisplayMode,
   } from "../../utils/setting-utils";
@@ -134,6 +142,9 @@
   let postListMasonry = $state(getStoredPostListMasonry());
   // 樱花特效（前台面板「特效」分区）
   let sakuraEnabled = $state(getStoredSakuraEnabled());
+  // 卡片边框和阴影 / 卡片跟随主题色（对齐 Firefly）
+  let cardBorder = $state(getStoredCardBorderEnabled());
+  let cardFollowTheme = $state(getStoredCardFollowThemeEnabled());
   // 面板里透明度类参数以百分比展示（存储为 0–1）
   const storedWallpaper = getStoredWallpaperParams();
   let wallpaperOpacity = $state(Math.round(storedWallpaper.opacity * 100));
@@ -153,6 +164,12 @@
       postListMasonry !== defaultPostListMasonry,
   );
   const dirtySakura = $derived(sakuraEnabled !== defaultSakuraEnabled);
+  const defaultCardBorder = getDefaultCardBorderEnabled();
+  const defaultCardFollowTheme = getDefaultCardFollowThemeEnabled();
+  const dirtyCardBorder = $derived(cardBorder !== defaultCardBorder);
+  const dirtyCardFollowTheme = $derived(
+    cardFollowTheme !== defaultCardFollowTheme,
+  );
   const showMasonry = $derived(showCardStyle && layout === "grid");
   const dirtyWallpaper = $derived(
     wallpaperOpacity !== Math.round(defaultWallpaper.opacity * 100) ||
@@ -210,6 +227,26 @@
   function resetSakuraBtn() {
     resetSakura();
     sakuraEnabled = defaultSakuraEnabled;
+  }
+
+  function toggleCardBorder() {
+    cardBorder = !cardBorder;
+    setCardBorderEnabled(cardBorder);
+  }
+
+  function resetCardBorderBtn() {
+    resetCardBorder();
+    cardBorder = defaultCardBorder;
+  }
+
+  function toggleCardFollowTheme() {
+    cardFollowTheme = !cardFollowTheme;
+    setCardFollowThemeEnabled(cardFollowTheme);
+  }
+
+  function resetCardFollowBtn() {
+    resetCardFollowTheme();
+    cardFollowTheme = defaultCardFollowTheme;
   }
 
   function toggleBannerTitle() {
@@ -377,6 +414,20 @@
           <span class="toggle-label">{t("display.navbarBlur", "高级材质")}</span>
           <span class="toggle" class:toggle-on={navbarBlur}><span class="toggle-knob"></span></span>
         </button>
+        {#if switches.cardBorder}
+          <button type="button" class="toggle-row" class:toggle-on={cardBorder} role="switch" aria-checked={cardBorder} on:click={toggleCardBorder}>
+            <span class="icon-[material-symbols--border-style-rounded] toggle-icon"></span>
+            <span class="toggle-label">{t("display.cardBorder", "卡片边框和阴影")}</span>
+            <span class="toggle" class:toggle-on={cardBorder}><span class="toggle-knob"></span></span>
+          </button>
+        {/if}
+        {#if switches.cardFollowTheme}
+          <button type="button" class="toggle-row" class:toggle-on={cardFollowTheme} role="switch" aria-checked={cardFollowTheme} on:click={toggleCardFollowTheme}>
+            <span class="icon-[material-symbols--palette-outline] toggle-icon"></span>
+            <span class="toggle-label">{t("display.cardFollowTheme", "卡片跟随主题色")}</span>
+            <span class="toggle" class:toggle-on={cardFollowTheme}><span class="toggle-knob"></span></span>
+          </button>
+        {/if}
         {#if showMasonry}
           <button type="button" class="toggle-row" class:toggle-on={postListMasonry} role="switch" aria-checked={postListMasonry} on:click={toggleMasonry}>
             <span class="icon-[material-symbols--waterfall-chart-rounded] toggle-icon"></span>

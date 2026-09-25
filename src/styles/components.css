@@ -5,6 +5,29 @@
     @apply overflow-hidden rounded-(--radius-large) bg-(--card-bg) transition;
   }
 
+  /* 卡片边框和阴影（前台面板「卡片样式」分区；对齐 Firefly enable-card-border）：
+     给卡片/按钮卡/导航栏加细边框与阴影 */
+  .enable-card-border .card-base,
+  .enable-card-border .btn-card {
+    @apply transition-all duration-300 border border-(--line-divider) shadow-xs;
+  }
+  .enable-card-border #navbar-card {
+    @apply transition-all duration-300 border shadow-xs;
+    border-color: var(--line-divider) !important;
+  }
+  /* 横幅/全屏壁纸模式下导航栏顶部透明态不加边框，避免与透明背景冲突 */
+  html[data-banner-display="banner"]
+    body:not(.navbar-scrolled)
+    .enable-card-border
+    #navbar-card,
+  html[data-banner-display="fullscreen"]
+    body:not(.navbar-scrolled)
+    .enable-card-border
+    #navbar-card {
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
   .expand-animation {
     @apply relative z-0 before:absolute before:inset-0 before:-z-10 before:scale-[0.85] before:rounded-[inherit] before:transition before:ease-out hover:before:scale-100 hover:before:bg-(--btn-plain-bg-hover) active:bg-transparent active:before:bg-(--btn-plain-bg-active);
   }

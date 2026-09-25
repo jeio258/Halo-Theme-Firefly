@@ -117,6 +117,12 @@
   --upvote-error: oklch(0.7 0.19 22);
 }
 
+/* 卡片跟随主题色（前台面板「卡片样式」分区；对齐 Firefly card-follow-theme-hue）：
+   浅色模式下卡片背景带主题色相微幅染色，暗色模式不适用 */
+:root:not(.dark) body.card-follow-theme-hue {
+  --card-bg: oklch(1 0.01 var(--hue));
+}
+
 :root.dark {
   --primary: oklch(0.75 0.14 var(--hue));
   --page-bg: oklch(0.16 0.014 var(--hue));

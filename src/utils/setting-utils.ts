@@ -159,6 +159,8 @@ export interface VisitorSwitches {
   wallpaperMode: boolean;
   wallpaperSettings: boolean;
   effects: boolean;
+  cardBorder: boolean;
+  cardFollowTheme: boolean;
 }
 
 function getCarrier(): HTMLElement | null {
@@ -184,6 +186,8 @@ function readVisitorSwitches(): VisitorSwitches {
     wallpaperMode: enable && carrierBool("visitorWallpaperMode", true),
     wallpaperSettings: enable && carrierBool("visitorWallpaperSettings", true),
     effects: enable && carrierBool("visitorEffects", true),
+    cardBorder: enable && carrierBool("visitorCardBorder", true),
+    cardFollowTheme: enable && carrierBool("visitorCardFollow", true),
   };
 }
 
@@ -619,4 +623,59 @@ export function setSakuraEnabled(enabled: boolean): void {
 export function resetSakura(): void {
   localStorage.removeItem("sakuraEnabled");
   setSakuraEnabled(getDefaultSakuraEnabled());
+}
+
+/* ── 卡片边框和阴影（前台面板「卡片样式」分区；对齐 Firefly enable-card-border） ── */
+
+export function getDefaultCardBorderEnabled(): boolean {
+  return carrierBool("cardBorderDefault", false);
+}
+
+export function getStoredCardBorderEnabled(): boolean {
+  if (!getVisitorSwitches().cardBorder) return getDefaultCardBorderEnabled();
+  const stored = localStorage.getItem("cardBorderEnabled");
+  return stored == null ? getDefaultCardBorderEnabled() : stored === "true";
+}
+
+export function applyCardBorder(enabled: boolean): void {
+  document.documentElement.classList.toggle("enable-card-border", enabled);
+}
+
+export function setCardBorderEnabled(enabled: boolean): void {
+  localStorage.setItem("cardBorderEnabled", String(enabled));
+  applyCardBorder(enabled);
+}
+
+export function resetCardBorder(): void {
+  localStorage.removeItem("cardBorderEnabled");
+  applyCardBorder(getDefaultCardBorderEnabled());
+}
+
+/* ── 卡片跟随主题色（对齐 Firefly card-follow-theme-hue） ── */
+
+export function getDefaultCardFollowThemeEnabled(): boolean {
+  return carrierBool("cardFollowDefault", false);
+}
+
+export function getStoredCardFollowThemeEnabled(): boolean {
+  if (!getVisitorSwitches().cardFollowTheme)
+    return getDefaultCardFollowThemeEnabled();
+  const stored = localStorage.getItem("cardFollowThemeEnabled");
+  return stored == null
+    ? getDefaultCardFollowThemeEnabled()
+    : stored === "true";
+}
+
+export function applyCardFollowTheme(enabled: boolean): void {
+  document.body.classList.toggle("card-follow-theme-hue", enabled);
+}
+
+export function setCardFollowThemeEnabled(enabled: boolean): void {
+  localStorage.setItem("cardFollowThemeEnabled", String(enabled));
+  applyCardFollowTheme(enabled);
+}
+
+export function resetCardFollowTheme(): void {
+  localStorage.removeItem("cardFollowThemeEnabled");
+  applyCardFollowTheme(getDefaultCardFollowThemeEnabled());
 }

@@ -468,6 +468,19 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
           localStorage.removeItem("navbarBlur");
         }
 
+        // 卡片边框和阴影 / 卡片跟随主题色（对齐 Firefly；class 需在首帧前应用防 FOUC）
+        var cardBorder = localStorage.getItem("cardBorderEnabled");
+        if (cardBorder != null) {
+          document.documentElement.classList.toggle(
+            "enable-card-border",
+            cardBorder === "true",
+          );
+        }
+        var cardFollow = localStorage.getItem("cardFollowThemeEnabled");
+        if (cardFollow != null) {
+          body.classList.toggle("card-follow-theme-hue", cardFollow === "true");
+        }
+
         // 透明设置（全屏透明模式）：覆盖 body 内联变量
         if (enable && on(d.visitorTransparent)) {
           var num = function (key) {

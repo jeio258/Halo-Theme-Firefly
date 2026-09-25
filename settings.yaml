@@ -229,6 +229,8 @@ spec:
                 wallpaperSettings: true
                 transparent: true
                 effects: true
+                cardBorder: true
+                cardFollowTheme: true
               children:
                 - $formkit: switch
                   name: enable
@@ -293,6 +295,22 @@ spec:
                   label: 特效切换
                   value: true
                   help: "开启后访客可在面板「特效」分区开关樱花飘落（需先在「特效」设置中启用樱花）"
+                - $formkit: switch
+                  name: cardBorder
+                  id: visitorStyle_cardBorder
+                  key: visitorStyle_cardBorder
+                  if: "$get(visitorStyle_enable).value"
+                  label: 卡片边框切换
+                  value: true
+                  help: "访客可在面板中开关卡片边框和阴影"
+                - $formkit: switch
+                  name: cardFollowTheme
+                  id: visitorStyle_cardFollowTheme
+                  key: visitorStyle_cardFollowTheme
+                  if: "$get(visitorStyle_enable).value"
+                  label: 卡片跟随主题色切换
+                  value: true
+                  help: "访客可在面板中开关卡片背景跟随主题色相"
         - $formkit: group
           name: floatingButtons
           label: 浮动导航按钮
@@ -741,6 +759,8 @@ spec:
             banner_wave: enabled
             navbar_blur: true
             card_hover_lift: true
+            card_border: false
+            card_follow_theme: false
           children:
             # 三选开关（写法与 color_scheme 一致）：关闭 / 开启 / 移动端关闭
             - $formkit: select
@@ -765,6 +785,16 @@ spec:
               label: 卡片悬浮效果
               value: true
               help: "卡片悬停时轻微上移并显示主题色阴影"
+            - $formkit: switch
+              name: card_border
+              label: 卡片边框和阴影
+              value: false
+              help: "为卡片添加细边框与阴影（访客可在显示设置面板切换，此项为默认值）"
+            - $formkit: switch
+              name: card_follow_theme
+              label: 卡片跟随主题色
+              value: false
+              help: "卡片背景跟随主题色相（浅色模式下生效；访客可在显示设置面板切换，此项为默认值）"
         - $formkit: group
           name: animationSpeed
           label: 动画速度
