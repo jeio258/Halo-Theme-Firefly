@@ -93,5 +93,19 @@
       attributeFilter: ["data-banner-display", "data-fullscreen-layout"],
     },
   );
+  // 面板模糊度滑块写 body 的 --transparent-wallpaper-blur；变化时重算，
+  // 否则 max 不重读，滑块表现为失效（对齐 Firefly 监听 --overlay-blur 的机制）
+  let lastBodyBlur = document.body.style.getPropertyValue(
+    "--transparent-wallpaper-blur",
+  );
+  new MutationObserver(() => {
+    const cur = document.body.style.getPropertyValue(
+      "--transparent-wallpaper-blur",
+    );
+    if (cur !== lastBodyBlur) {
+      lastBodyBlur = cur;
+      requestAnimationFrame(apply);
+    }
+  }).observe(document.body, { attributes: true, attributeFilter: ["style"] });
   apply();
 })();

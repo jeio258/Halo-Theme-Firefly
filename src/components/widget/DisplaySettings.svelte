@@ -94,11 +94,12 @@
     showWallpaperMode &&
     switches.wallpaperSettings &&
     (defaultWave || defaultBannerTitle);
-  // 壁纸参数区（透明度/模糊度）在透明与全屏模式均可调（对齐 Firefly：全屏有
-  // 模糊斜坡；透明有壁纸透明度；卡片透明度仅透明模式）
+  // 壁纸参数区（透明度/模糊度/卡片透明度）：透明模式全显示；全屏仅沉浸(hero)布局
+  // 显示（经典 classic 不模糊、卡片恒不透明，相关滑块无意义 → 收纳折叠）
   const showWallpaper = $derived(
     switches.transparent &&
-      (wallpaperMode === "transparent" || wallpaperMode === "fullscreen"),
+      (wallpaperMode === "transparent" ||
+        (wallpaperMode === "fullscreen" && fullscreenLayout === "hero")),
   );
 
   /* ── 面板 Tab（外观 / 壁纸 / 特效，参考 firefly） ── */
