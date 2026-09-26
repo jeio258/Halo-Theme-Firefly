@@ -591,7 +591,7 @@
             <span>{t("display.wallpaperBlur", "背景模糊度")}</span>
             <span class="value-badge">{wallpaperBlur}px</span>
           </div>
-          <input aria-label={t("display.wallpaperBlur", "背景模糊度")} type="range" min="0" max="24" step="1"
+          <input aria-label={t("display.wallpaperBlur", "背景模糊度")} type="range" min="0" max="20" step="1"
                  bind:value={wallpaperBlur} on:input={applyBlur} class="wallpaper-slider">
         </div>
         <div class="slider-row">

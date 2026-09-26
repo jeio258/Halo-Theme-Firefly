@@ -72,11 +72,11 @@ spec:
               if: "$get(banner_displayMode).value === 'transparent'"
               label: 背景模糊度
               min: 0
-              max: 24
+              max: 20
               step: 1
               value: 10
-              validation: "min:0|max:24"
-              help: "壁纸背景模糊强度（0~24 px，默认 10），值越大越柔和；导航栏与悬浮按钮糊到的内容随之改变"
+              validation: "min:0|max:20"
+              help: "壁纸背景模糊强度（0~20 px，默认 10），值越大越柔和；导航栏与悬浮按钮糊到的内容随之改变"
             - $formkit: number
               name: cardOpacity
               id: banner_transparent_cardOpacity

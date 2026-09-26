@@ -692,36 +692,29 @@
      采样，磨砂会在过渡动画期间暂时消失（淡入结束才"啪"地出现）。
      注意：不可用 .bg-(--card-bg) 通配——会命中 #post-list-container 等
      包装容器使其成为 backdrop root，内层卡片失效；也不可覆盖
-     .bg-(--primary)（分组控件选中态的主题色高亮） */
+     .bg-(--primary)（分组控件选中态的主题色高亮）
+     对齐 Firefly wallpaper-transparent：透明/沉浸(hero)模式下卡片恒半透明，
+     不依赖「高级材质」开关——改壁纸模糊滑块，首屏与下滑后内容区一起变 */
   html[data-banner-display="transparent"]
-    body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   html[data-banner-display="transparent"]
-    body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
     ),
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
     ),
-  html[data-banner-display="transparent"] body.navbar-blur-enabled .float-panel,
+  html[data-banner-display="transparent"] .float-panel,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .float-panel,
-  html[data-banner-display="transparent"] body.navbar-blur-enabled .navbar-blur,
+  html[data-banner-display="transparent"] .navbar-blur,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .navbar-blur,
-  html[data-banner-display="transparent"]
-    body.navbar-blur-enabled
-    .floating-btn,
+  html[data-banner-display="transparent"] .floating-btn,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .floating-btn {
     background-color: rgb(
       255 255 255 / var(--transparent-card-alpha, 0.6)
@@ -729,38 +722,25 @@
   }
 
   :root.dark[data-banner-display="transparent"]
-    body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   :root.dark[data-banner-display="transparent"]
-    body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
     ),
   :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
     ),
-  :root.dark[data-banner-display="transparent"]
-    body.navbar-blur-enabled
+  :root.dark[data-banner-display="transparent"] .float-panel,
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
     .float-panel,
+  :root.dark[data-banner-display="transparent"] .navbar-blur,
   :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
-    .float-panel,
-  :root.dark[data-banner-display="transparent"]
-    body.navbar-blur-enabled
     .navbar-blur,
+  :root.dark[data-banner-display="transparent"] .floating-btn,
   :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
-    .navbar-blur,
-  :root.dark[data-banner-display="transparent"]
-    body.navbar-blur-enabled
-    .floating-btn,
-  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    body.navbar-blur-enabled
     .floating-btn {
     background-color: rgb(
       0 0 0 / var(--transparent-card-alpha, 0.6)
