@@ -499,7 +499,10 @@ function isFullscreenLayoutMode(value: unknown): value is FullscreenLayoutMode {
 }
 
 export function getDefaultFullscreenLayout(): FullscreenLayoutMode {
-  return "classic"; // 对齐 Firefly（fullscreen.layout ?? classic）
+  // 后台默认（theme.config.layout.bannerLayout.fullscreenLayout，经 ConfigCarrier data 属性传递）；
+  // 未设回退 classic（对齐 Firefly fullscreen.layout ?? classic）
+  const v = getCarrier()?.dataset?.["fullscreenLayoutDefault"];
+  return v === "hero" ? "hero" : "classic";
 }
 
 export function getStoredFullscreenLayout(): FullscreenLayoutMode {

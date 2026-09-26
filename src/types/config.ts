@@ -114,6 +114,8 @@ export interface Layout {
 export interface BannerLayout {
   /** 显示模式：disabled 关闭 | banner 横幅模式（默认，首页延伸 65vh）| fullscreen 全屏模式（首页 100vh）| transparent 全屏透明（无横幅、整屏壁纸背景） */
   displayMode?: "disabled" | "banner" | "fullscreen" | "transparent";
+  /** 全屏模式布局：classic 经典（文档流壁纸、不模糊）| hero 沉浸（钉视口 + 模糊 + 标题视差，对齐 Firefly）；未设默认 classic */
+  fullscreenLayout?: "classic" | "hero";
   /** 全屏透明模式：壁纸整体不透明度（0.3-1，默认 0.8，仅 transparent 模式生效） */
   wallpaperOpacity?: number;
   /** 全屏透明模式：壁纸背景模糊强度（px，0-24，仅 transparent 模式生效） */

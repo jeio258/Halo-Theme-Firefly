@@ -37,6 +37,7 @@ spec:
             wallpaperOpacity: 0.8
             wallpaperBlur: 10
             cardOpacity: 0.6
+            fullscreenLayout: classic
           children:
             - $formkit: select
               name: displayMode
@@ -53,6 +54,19 @@ spec:
                   value: fullscreen
                 - label: 全屏透明
                   value: transparent
+            - $formkit: select
+              name: fullscreenLayout
+              id: banner_fullscreenLayout
+              key: banner_fullscreenLayout
+              label: 全屏布局
+              value: classic
+              if: "$get(banner_displayMode).value === 'fullscreen'"
+              help: "全屏模式的布局：经典（文档流壁纸、不模糊、卡片不透明）或沉浸（hero：壁纸钉视口 + 模糊 + 标题视差，对齐 Firefly）。访客仍可在前台「显示设置」面板切换"
+              options:
+                - label: 经典（classic）
+                  value: classic
+                - label: 沉浸（hero）
+                  value: hero
             - $formkit: number
               name: wallpaperOpacity
               id: banner_transparent_wallpaperOpacity

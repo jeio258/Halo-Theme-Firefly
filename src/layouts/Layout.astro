@@ -161,7 +161,7 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
   th:data-theme-anim-angle="${theme.config?.style?.colorScheme?.colorSchemeAnimation?.angle}"
   th:data-speed="${theme.config?.style?.animationSpeed?.speedTier}"
   th:data-banner-display="${bannerMode}"
-  th:data-fullscreen-layout="classic"
+  th:data-fullscreen-layout="${theme.config?.layout?.bannerLayout?.fullscreenLayout ?: 'classic'}"
   th:with={bannerModeThWith() + ", " + speedCustomStyleThWith()}
   th:style={speedCustomStyleThExpr()}
   class="bg-(--page-bg) text-[14px] transition md:text-[16px]"
@@ -534,15 +534,17 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
             "enable-banner",
             mode === "banner" || mode === "fullscreen",
           );
-          // 全屏布局（classic/hero，对齐 Firefly）：仅全屏模式生效
+          // 全屏布局（classic/hero，对齐 Firefly）：仅全屏模式生效；
+          // 访客 localStorage 值优先，未设置时保留 SSR 后台默认（html 属性）
           if (mode === "fullscreen") {
             var fsLayouts = ["classic", "hero"];
             var fsLayout = localStorage.getItem("fullscreenLayout");
-            if (fsLayouts.indexOf(fsLayout) === -1) fsLayout = "classic";
-            document.documentElement.setAttribute(
-              "data-fullscreen-layout",
-              fsLayout,
-            );
+            if (fsLayouts.indexOf(fsLayout) !== -1) {
+              document.documentElement.setAttribute(
+                "data-fullscreen-layout",
+                fsLayout,
+              );
+            }
           }
         } else {
           localStorage.removeItem("bannerDisplay");
