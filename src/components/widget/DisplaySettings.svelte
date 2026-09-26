@@ -22,6 +22,9 @@
     getDefaultBannerDisplay,
     getStoredBannerDisplay,
     setBannerDisplay,
+    getDefaultFullscreenLayout,
+    getStoredFullscreenLayout,
+    setFullscreenLayout,
     getDefaultWave,
     getStoredWave,
     setWave,
@@ -48,6 +51,7 @@
     resetCardFollowTheme,
     type PostListLayoutMode,
     type BannerDisplayMode,
+    type FullscreenLayoutMode,
   } from "../../utils/setting-utils";
   import { t } from "../../utils/i18n";
 
@@ -71,6 +75,7 @@
 
   /* ── 壁纸模式 / 壁纸设置（首页壁纸标题 + 波浪）状态 ── */
   let wallpaperMode = $state<BannerDisplayMode>(getStoredBannerDisplay());
+  let fullscreenLayout = $state<FullscreenLayoutMode>(getStoredFullscreenLayout());
   let wave = $state(getStoredWave());
   let bannerTitle = $state(getStoredBannerTitle());
   const defaultBannerDisplay = getDefaultBannerDisplay();
@@ -215,6 +220,11 @@
   function chooseMode(mode: BannerDisplayMode) {
     wallpaperMode = mode;
     setBannerDisplay(mode);
+  }
+
+  function chooseFsLayout(mode: FullscreenLayoutMode) {
+    fullscreenLayout = mode;
+    setFullscreenLayout(mode);
   }
 
   function toggleWave() {
@@ -464,6 +474,25 @@
         </div>
       {/if}
 
+      <!-- 全屏布局（经典 classic / 沉浸 hero，对齐 Firefly）仅全屏模式显示 -->
+      {#if wallpaperMode === "fullscreen"}
+        <div class="section-title mb-3 mt-4">
+          {t("display.fullscreenLayout", "全屏布局")}
+        </div>
+        <div class="mode-grid" role="group" aria-label={t("display.fullscreenLayout", "全屏布局")}>
+          <button type="button" class="mode-item" class:mode-on={fullscreenLayout === "classic"}
+                  aria-pressed={fullscreenLayout === "classic"} on:click={() => chooseFsLayout("classic")}>
+            <span class="icon-[material-symbols--view-day-outline-rounded] mode-icon"></span>
+            <span>{t("display.fullscreenClassic", "经典")}</span>
+          </button>
+          <button type="button" class="mode-item" class:mode-on={fullscreenLayout === "hero"}
+                  aria-pressed={fullscreenLayout === "hero"} on:click={() => chooseFsLayout("hero")}>
+            <span class="icon-[material-symbols--desktop-landscape-outline-rounded] mode-icon"></span>
+            <span>{t("display.fullscreenHero", "沉浸")}</span>
+          </button>
+        </div>
+      {/if}
+
       <!-- 壁纸设置（横幅/全屏：首页壁纸标题 + 波浪开关，参考 firefly 的壁纸设置分区） -->
       {#if showWallpaperSettings && (wallpaperMode === "banner" || wallpaperMode === "fullscreen")}
         <div class="section-title mb-3">
@@ -502,6 +531,8 @@
             </div>
           </button>
         </div>
+        <!-- 壁纸透明度仅透明模式（对齐 Firefly：全屏壁纸恒不透明） -->
+        {#if wallpaperMode === "transparent"}
         <div class="slider-row">
           <div class="slider-label">
             <span>{t("display.wallpaperOpacity", "壁纸透明度")}</span>
@@ -510,16 +541,15 @@
           <input aria-label={t("display.wallpaperOpacity", "壁纸透明度")} type="range" min="30" max="100" step="5"
                  bind:value={wallpaperOpacity} on:input={applyOpacity} class="wallpaper-slider">
         </div>
+        {/if}
         <div class="slider-row">
           <div class="slider-label">
-            <span>{t("display.wallpaperBlur", "模糊度")}</span>
+            <span>{t("display.wallpaperBlur", "背景模糊度")}</span>
             <span class="value-badge">{wallpaperBlur}px</span>
           </div>
-          <input aria-label={t("display.wallpaperBlur", "模糊度")} type="range" min="0" max="24" step="1"
+          <input aria-label={t("display.wallpaperBlur", "背景模糊度")} type="range" min="0" max="24" step="1"
                  bind:value={wallpaperBlur} on:input={applyBlur} class="wallpaper-slider">
         </div>
-        <!-- 卡片透明度仅透明模式（全屏卡片为不透明，无宿主） -->
-        {#if wallpaperMode === "transparent"}
         <div class="slider-row">
           <div class="slider-label">
             <span>{t("display.wallpaperCardAlpha", "卡片透明度")}</span>
@@ -528,7 +558,6 @@
           <input aria-label={t("display.wallpaperCardAlpha", "卡片透明度")} type="range" min="30" max="100" step="5"
                  bind:value={wallpaperCardAlpha} on:input={applyCardAlpha} class="wallpaper-slider">
         </div>
-        {/if}
       {/if}
     {/if}
 

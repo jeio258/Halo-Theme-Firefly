@@ -396,8 +396,6 @@ export function applyWallpaperParams(params: WallpaperParams): void {
     "--transparent-wallpaper-opacity",
     String(params.opacity),
   );
-  // 同一访客值同步全屏模式（默认回退不同：透明 0.8 / 全屏 1，见 Layout.astro）
-  body.style.setProperty("--fs-wallpaper-opacity", String(params.opacity));
   body.style.setProperty("--transparent-wallpaper-blur", `${params.blur}px`);
   body.style.setProperty("--transparent-card-alpha", String(params.cardAlpha));
 }
@@ -483,6 +481,40 @@ export function applyBannerDisplay(mode: BannerDisplayMode): void {
 export function setBannerDisplay(mode: BannerDisplayMode): void {
   localStorage.setItem("bannerDisplay", mode);
   applyBannerDisplay(mode);
+}
+
+/* ── 全屏布局（classic 文档流 / hero 钉屏+模糊+卡片半透明，对齐 Firefly） ── */
+
+export type FullscreenLayoutMode = "classic" | "hero";
+
+const FULLSCREEN_LAYOUT_MODES: FullscreenLayoutMode[] = ["classic", "hero"];
+
+function isFullscreenLayoutMode(value: unknown): value is FullscreenLayoutMode {
+  return (
+    typeof value === "string" &&
+    (FULLSCREEN_LAYOUT_MODES as string[]).includes(value)
+  );
+}
+
+export function getDefaultFullscreenLayout(): FullscreenLayoutMode {
+  return "classic"; // 对齐 Firefly（fullscreen.layout ?? classic）
+}
+
+export function getStoredFullscreenLayout(): FullscreenLayoutMode {
+  if (!getVisitorSwitches().wallpaperMode) return getDefaultFullscreenLayout();
+  const stored = localStorage.getItem("fullscreenLayout");
+  return isFullscreenLayoutMode(stored) ? stored : getDefaultFullscreenLayout();
+}
+
+export function setFullscreenLayout(mode: FullscreenLayoutMode): void {
+  localStorage.setItem("fullscreenLayout", mode);
+  applyFullscreenLayout(mode);
+}
+
+/** 应用全屏布局：写 html[data-fullscreen-layout]；仅全屏模式有意义，
+ *  切换时由 banner-mode-transitioning 过渡兜底 */
+export function applyFullscreenLayout(mode: FullscreenLayoutMode): void {
+  document.documentElement.setAttribute("data-fullscreen-layout", mode);
 }
 
 /* ── 波浪（横幅底部动效） ── */

@@ -31,6 +31,11 @@ const {
   isHomePage = false,
   showToc = false,
 } = Astro.props;
+
+// 非首页标志：用局部 const（正标识符）让 halo 插件按页构建时常量折叠；
+// 直接用 "!isHomePage && (...)" 会被插件落成未折叠的 th:if="${!isHomePage}"，
+// 而 isHomePage 非 Thymeleaf 模型变量 → "!null" 报 "cannot convert from null to boolean"。
+const isNonHome = !isHomePage;
 ---
 
 <style is:global>
@@ -319,6 +324,37 @@ const {
         >
         </div>
       </div>
+    </div>
+    <!-- 非首页横幅页面标题（对齐 Firefly banner-page-title-overlay：桌面居中显示
+       页面标题；首页/移动端由 CSS 隐藏） -->
+    {
+      isNonHome && (
+        <div
+          id="banner-page-title-overlay"
+          class="pointer-events-none absolute inset-0 z-10 hidden items-center justify-center px-4 text-center lg:flex"
+        >
+          <span
+            id="banner-page-title"
+            class="font-bold text-white"
+            th:style="'font-size: ' + (${theme.config?.style?.bannerText?.titleFontSize ?: '3.5rem'}) + '; text-shadow: 0 2px 15px rgba(0,0,0,0.5)'"
+            th:text={title}
+          />
+        </div>
+      )
+    }
+    <!-- 壁纸遮罩（对齐 Firefly banner-dim-container：rgba 黑遮罩，让横幅文字更清晰） -->
+    <div
+      id="banner-dim-container"
+      class="pointer-events-none absolute inset-0 z-[15]"
+      th:style="'background: rgba(0, 0, 0, ' + (${theme.config?.layout?.bannerLayout?.dimOpacity ?: 0.2}) + ')'"
+    >
+    </div>
+    <!-- 底部渐变过渡（对齐 Firefly wallpaper-gradient：透明→页面底色，水波纹关闭时自动启用） -->
+    <div
+      id="wallpaper-gradient"
+      class="pointer-events-none absolute bottom-0 w-full z-[12]"
+      style="height: 10%; background: linear-gradient(to bottom, transparent, var(--page-bg));"
+    >
     </div>
     <!-- 全屏模式首页：向下滚动指示箭头，点击平滑滚动到内容区。
        独立于 #banner-overlay 渲染——标题/副标题关闭（bannerText.enable=false）

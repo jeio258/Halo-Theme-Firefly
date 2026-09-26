@@ -6,6 +6,8 @@
   --toc-transition-duration: 150ms;
   --page-width: 75rem;
   --banner-height: 35vh;
+  /* 非首页横幅高度（对齐 Firefly max(45vh, 380px)） */
+  --banner-height-non-home: max(45vh, 380px);
   --banner-height-home: 65vh;
   --banner-height-extend: 30vh;
   /* 全屏首页内容区顶部间距（原 #main-grid padding-top，现折进 panel top） */

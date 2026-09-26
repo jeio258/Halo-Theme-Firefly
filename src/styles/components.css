@@ -231,6 +231,17 @@
     top: calc(var(--banner-height) - var(--panel-overlap));
   }
 
+  /* 非首页内容区按非首页横幅高度定位（对齐 Firefly --content-top 语义） */
+  body:not(.is-home).enable-banner #main-panel-wrapper {
+    top: calc(var(--banner-height-non-home) - var(--panel-overlap));
+  }
+
+  body:not(.is-home).enable-banner #main-grid {
+    min-height: calc(
+      100vh - var(--banner-height-non-home) + var(--panel-overlap)
+    );
+  }
+
   /* 全屏模式首页：banner 占满整屏，内容区从 100vh 之下开始（不交叠）。
      top = 100vh − 延伸像素，与 #main-grid 的 translate-y-(--banner-height-extend)
      抵消后精确落在 100vh，避免延伸像素取整导致的顶部残留露白。
@@ -260,6 +271,61 @@
     /* 抵消 .is-home.enable-banner 的延伸量（--tw-translate-y: --banner-height-extend，
        全屏下为 65vh）——该规则特异性（1-2-0）高于本规则，必须 !important */
     translate: 0 !important;
+  }
+
+  /* 全屏 classic 布局（对齐 Firefly：文档流壁纸，无模糊，卡片不透明）：
+     覆盖上面 hero 的 fixed/模糊/波形隐藏规则；访客面板可切 hero */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #banner-wrapper {
+    position: relative !important;
+    top: 0 !important;
+    left: auto !important;
+    right: auto !important;
+    translate: 0 !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #banner
+    img,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #banner-mobile
+    img,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #banner
+    video,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #banner-mobile
+    video {
+    filter: none !important;
+    transform: scale(1.06);
+  }
+
+  /* classic 波形显示（hero 隐藏）；滚动箭头回归 absolute（非钉屏） */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="classic"]
+    #scroll-down-indicator {
+    position: absolute !important;
+  }
+
+  /* hero 非首页：壁纸 fixed 钉屏 + 模糊固定 max，内容贴导航栏下方，
+     隐藏标题/页面标题/滚动指示器（对齐 Firefly hero 非首页与 overlay 一致） */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body:not(.is-home)
+    #main-panel-wrapper {
+    top: var(--no-banner-panel-top) !important;
+  }
+
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body:not(.is-home)
+    #banner-overlay,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body:not(.is-home)
+    #banner-page-title-overlay,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body:not(.is-home)
+    #scroll-down-indicator {
+    display: none !important;
   }
 
   /* 全屏首页向下箭头（#scroll-down-indicator）的落点间距：网格顶边向上留出
@@ -317,8 +383,9 @@
       getComputedStyle 读不到延伸量的时序问题 */
   #wave-container {
     top: var(--banner-height);
-    transform: translateY(calc(-100% + var(--wave-cover-offset)));
-    /* 时长与 banner 装配件统一用 --dur-banner（随速度档位）：
+    transform: translateY(
+      calc(-100% + var(--wave-cover-offset))
+    ); /* 时长与 banner 装配件统一用 --dur-banner（随速度档位）：
        硬编码 700ms 会在舒缓档（800ms）/疾速档（500ms）与 banner/主网格
        移速不一致，wave 领先产生间隙 */
     transition: transform var(--dur-banner, 700ms)
@@ -331,24 +398,36 @@
     );
   }
 
-  /* 全屏壁纸参数（对齐 Firefly + 访客面板扩展）：
-     - 透明度：--fs-wallpaper-opacity（面板「壁纸透明度」，与透明模式同参数不同回退：
-       透明 0.8 / 全屏 1，未改动面板时全屏恒不透明对齐 Firefly）。
-     - 模糊：--fullscreen-wallpaper-blur 由 fullscreen-hero.js 滚动斜坡驱动
-       （首页 0→max，max = 面板「模糊度」值）；scale 裁掉模糊边缘（同透明模式机制） */
-  html[data-banner-display="fullscreen"] #banner img,
-  html[data-banner-display="fullscreen"] #banner-mobile img,
-  html[data-banner-display="fullscreen"] #banner video,
-  html[data-banner-display="fullscreen"] #banner-mobile video {
-    opacity: var(--fs-wallpaper-opacity, 1);
+  /* 全屏壁纸参数（对齐 Firefly）：
+     背景模糊：--fullscreen-wallpaper-blur 由 fullscreen-hero.js 滚动斜坡驱动
+     （首页 0→max，max = 面板「背景模糊度」值）；scale 裁掉模糊边缘。
+     壁纸本身恒不透明（Firefly 全屏无壁纸透明度滑块），磨砂感来自下方卡片半透明 */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #banner
+    img,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #banner-mobile
+    img,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #banner
+    video,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #banner-mobile
+    video {
     filter: blur(var(--fullscreen-wallpaper-blur, 0px));
     transform: scale(1.06);
   }
 
-  /* 全屏模式不需要水波纹（对齐 Firefly：fullscreen 下波形均 display:none，
-     壁纸 fixed 钉屏后波形会悬浮在视口底部）；!important 防 DOM 显示类工具覆盖 */
-  html[data-banner-display="fullscreen"] #wave-container {
+  /* 全屏 hero 布局不需要水波纹（对齐 Firefly hero：fullscreen 下波形均
+     display:none，壁纸 fixed 钉屏后波形会悬浮在视口底部）；classic 布局显示 */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #wave-container {
     display: none !important;
+  }
+
+  /* 非首页波形落到非首页横幅底边（45vh/380px） */
+  body:not(.is-home) #wave-container {
+    top: var(--banner-height-non-home);
   }
 
   /* 加载早期（页面未就绪）wave 不过渡：避免 is-home 初始校正时 transform
@@ -356,6 +435,18 @@
      给 <html> 加 page-ready 恢复平滑过渡 */
   html:not(.page-ready) #wave-container {
     transition: none;
+  }
+
+  /* 移动端非首页隐藏横幅（对齐 Firefly ≤1023px 非首页隐藏壁纸），
+     内容区贴导航栏下方 */
+  @media (max-width: 1023.98px) {
+    body:not(.is-home).enable-banner #banner-wrapper {
+      display: none !important;
+    }
+
+    body:not(.is-home).enable-banner #main-panel-wrapper {
+      top: var(--no-banner-panel-top);
+    }
   }
 
   /* 显式 0 长度基值：is-home 切换时 translate 在 length↔length 间过渡。
@@ -378,6 +469,12 @@
     @apply h-(--banner-height-home);
   }
 
+  /* 非首页横幅高度 = 可视 --banner-height-non-home + 顶部延伸量（wrapper 上移
+     -extend，可视区即非首页高度；对齐 Firefly max(45vh, 380px)） */
+  body:not(.is-home).enable-banner #banner-wrapper {
+    height: calc(var(--banner-height-non-home) + var(--banner-height-extend));
+  }
+
   .enable-banner #banner,
   .enable-banner #banner-mobile {
     @apply h-(--banner-height-home) translate-y-(--bannerOffset);
@@ -391,6 +488,22 @@
   /* 标题/副标题淡入淡出：时长与 banner 装配件位移统一（--dur-banner 随档位） */
   #banner-overlay {
     transition: opacity var(--dur-banner, 700ms) ease;
+  }
+
+  /* 壁纸遮罩（dim）显示门控：横幅/全屏显示；透明/纯色隐藏 */
+  html[data-banner-display="transparent"] #banner-dim-container,
+  html[data-banner-display="disabled"] #banner-dim-container {
+    display: none !important;
+  }
+
+  /* 底部渐变过渡显示门控（对齐 Firefly：waves 开启时渐变隐藏，waves 优先；
+     全屏 hero 无渐变；透明/纯色隐藏） */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    #wallpaper-gradient,
+  html[data-banner-display="transparent"] #wallpaper-gradient,
+  html[data-banner-display="disabled"] #wallpaper-gradient,
+  body:not(.wave-disabled) #wallpaper-gradient {
+    display: none !important;
   }
 
   /* 全屏首页 hero 标题由逐帧内联写入（translateY+opacity，见 fullscreen-hero 脚本），
@@ -544,8 +657,9 @@
     height: 100% !important;
   }
 
-  /* 壁纸背景不需要横幅文字/署名/媒体播放按钮 */
+  /* 壁纸背景不需要横幅文字/页面标题/署名/媒体播放按钮 */
   html[data-banner-display="transparent"] #banner-overlay,
+  html[data-banner-display="transparent"] #banner-page-title-overlay,
   html[data-banner-display="transparent"] #banner-credit,
   html[data-banner-display="transparent"] #banner-play-btn,
   html[data-banner-display="transparent"] #banner-play-btn-mobile {
@@ -565,7 +679,8 @@
     transform: scale(1.06);
   }
 
-  /* 卡片磨砂：需同时开启 banner「全屏透明」与「高级材质」两个开关。
+  /* 卡片磨砂（透明 + 全屏模式；全屏对齐 Firefly：卡片半透明透出模糊壁纸）：
+     需同时开启 banner 对应模式与「高级材质」两个开关。
      作用于文章卡（.post-card）、页面级大容器、侧边栏组件卡、浮层面板、
      导航栏（.navbar-blur）、悬浮按钮（.floating-btn），以及列表条目卡
      （.btn-card-outline：瞬间/分类/装备/友链/日程/项目集等）。
@@ -580,14 +695,31 @@
   html[data-banner-display="transparent"]
     body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   html[data-banner-display="transparent"]
     body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
     ),
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
+      .bg-\(--primary\)
+    ),
   html[data-banner-display="transparent"] body.navbar-blur-enabled .float-panel,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .float-panel,
   html[data-banner-display="transparent"] body.navbar-blur-enabled .navbar-blur,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .navbar-blur,
   html[data-banner-display="transparent"]
+    body.navbar-blur-enabled
+    .floating-btn,
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
     body.navbar-blur-enabled
     .floating-btn {
     background-color: rgb(
@@ -598,7 +730,15 @@
   :root.dark[data-banner-display="transparent"]
     body.navbar-blur-enabled
     .card-base:not(.btn-regular):not(.bg-\(--primary\)),
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .card-base:not(.btn-regular):not(.bg-\(--primary\)),
   :root.dark[data-banner-display="transparent"]
+    body.navbar-blur-enabled
+    .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
+      .bg-\(--primary\)
+    ),
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
     body.navbar-blur-enabled
     .btn-card:not(.btn-regular):not(.floating-btn .btn-card):not(
       .bg-\(--primary\)
@@ -606,10 +746,19 @@
   :root.dark[data-banner-display="transparent"]
     body.navbar-blur-enabled
     .float-panel,
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .float-panel,
   :root.dark[data-banner-display="transparent"]
     body.navbar-blur-enabled
     .navbar-blur,
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
+    body.navbar-blur-enabled
+    .navbar-blur,
   :root.dark[data-banner-display="transparent"]
+    body.navbar-blur-enabled
+    .floating-btn,
+  :root.dark[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
     body.navbar-blur-enabled
     .floating-btn {
     background-color: rgb(
@@ -704,18 +853,31 @@
      保证菜单栏与二级面板/悬浮按钮行为一致） */
   body.navbar-blur-enabled .navbar-blur {
     transition: none !important;
-    background-color: rgb(255 255 255 / 0.62) !important;
+    /* 对齐 Firefly semi 玻璃：card-bg 45% + 顶部高光/发丝线 */
+    background-color: color-mix(
+      in oklch,
+      var(--card-bg) 45%,
+      transparent
+    ) !important;
     -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
     backdrop-filter: saturate(180%) blur(20px) !important;
-    box-shadow: 0 4px 24px 0 rgb(0 0 0 / 0.04);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      0 4px 24px 0 rgb(0 0 0 / 0.04);
     border-bottom: 1px solid rgb(0 0 0 / 0.06);
   }
 
   :root.dark body.navbar-blur-enabled .navbar-blur {
-    background-color: rgb(0 0 0 / 0.65) !important;
+    background-color: color-mix(
+      in oklch,
+      var(--card-bg) 45%,
+      transparent
+    ) !important;
     -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
     backdrop-filter: saturate(180%) blur(20px) !important;
-    box-shadow: 0 4px 24px 0 rgb(0 0 0 / 0.2);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 4px 24px 0 rgb(0 0 0 / 0.2);
     border-bottom: 1px solid rgb(255 255 255 / 0.08);
   }
 
