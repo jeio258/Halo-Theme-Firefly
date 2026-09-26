@@ -398,6 +398,8 @@ export function applyWallpaperParams(params: WallpaperParams): void {
   );
   body.style.setProperty("--transparent-wallpaper-blur", `${params.blur}px`);
   body.style.setProperty("--transparent-card-alpha", String(params.cardAlpha));
+  // 通知依赖壁纸参数的运行期脚本（fullscreen-hero 模糊 max）重算（事件驱动，替代宽 observer）
+  window.dispatchEvent(new CustomEvent("wallpaperParamsChanged"));
 }
 
 export function setWallpaperParam(
@@ -515,6 +517,8 @@ export function setFullscreenLayout(mode: FullscreenLayoutMode): void {
  *  切换时由 banner-mode-transitioning 过渡兜底 */
 export function applyFullscreenLayout(mode: FullscreenLayoutMode): void {
   document.documentElement.setAttribute("data-fullscreen-layout", mode);
+  // 通知 fullscreen-hero 等依赖布局的重算（事件驱动，替代 html 属性 MutationObserver）
+  window.dispatchEvent(new CustomEvent("fullscreenLayoutChange"));
 }
 
 /* ── 波浪（横幅底部动效） ── */
