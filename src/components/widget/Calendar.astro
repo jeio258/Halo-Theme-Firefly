@@ -140,545 +140,548 @@ const calendarDataScript = `<script type="application/json" id="calendar-post-da
 <Fragment set:html={calendarDataScript} />
 
 <script is:inline th:inline="javascript">
-  // 月份/星期/年份/热力图文案（Thymeleaf JS inlining 输出字符串字面量）
-  const calendarMonthNames = [
-    `[(#{calendar.january})]`,
-    `[(#{calendar.february})]`,
-    `[(#{calendar.march})]`,
-    `[(#{calendar.april})]`,
-    `[(#{calendar.may})]`,
-    `[(#{calendar.june})]`,
-    `[(#{calendar.july})]`,
-    `[(#{calendar.august})]`,
-    `[(#{calendar.september})]`,
-    `[(#{calendar.october})]`,
-    `[(#{calendar.november})]`,
-    `[(#{calendar.december})]`,
-  ];
-  const calendarWeekDays = [
-    `[(#{calendar.sunday})]`,
-    `[(#{calendar.monday})]`,
-    `[(#{calendar.tuesday})]`,
-    `[(#{calendar.wednesday})]`,
-    `[(#{calendar.thursday})]`,
-    `[(#{calendar.friday})]`,
-    `[(#{calendar.saturday})]`,
-  ];
-  const calendarYearText = `[(#{calendar.year})]`;
-  const calendarHeatmapWeekTemplate = `[(#{calendar.heatmapWeek})]`;
-  // 站点语言（Halo 输出 <html lang>），决定日期格式
-  const calendarCurrentLang = document.documentElement.lang || "en";
+  (function () {
+    // 月份/星期/年份/热力图文案（Thymeleaf JS inlining 输出字符串字面量）
+    const calendarMonthNames = [
+      `[(#{calendar.january})]`,
+      `[(#{calendar.february})]`,
+      `[(#{calendar.march})]`,
+      `[(#{calendar.april})]`,
+      `[(#{calendar.may})]`,
+      `[(#{calendar.june})]`,
+      `[(#{calendar.july})]`,
+      `[(#{calendar.august})]`,
+      `[(#{calendar.september})]`,
+      `[(#{calendar.october})]`,
+      `[(#{calendar.november})]`,
+      `[(#{calendar.december})]`,
+    ];
+    const calendarWeekDays = [
+      `[(#{calendar.sunday})]`,
+      `[(#{calendar.monday})]`,
+      `[(#{calendar.tuesday})]`,
+      `[(#{calendar.wednesday})]`,
+      `[(#{calendar.thursday})]`,
+      `[(#{calendar.friday})]`,
+      `[(#{calendar.saturday})]`,
+    ];
+    const calendarYearText = `[(#{calendar.year})]`;
+    const calendarHeatmapWeekTemplate = `[(#{calendar.heatmapWeek})]`;
+    // 站点语言（Halo 输出 <html lang>），决定日期格式
+    const calendarCurrentLang = document.documentElement.lang || "en";
 
-  // 文章精简数据：读取服务端注入的 JSON，仅保留日历所需字段（过滤无 publishTime 的草稿）
-  function loadCalendarPosts() {
-    const el = document.getElementById("calendar-post-data");
-    if (!el) return [];
-    try {
-      return (JSON.parse(el.textContent || "[]") || [])
-        .map((p) => ({
-          id: p.metadata && p.metadata.name,
-          title: p.spec && p.spec.title,
-          published: p.spec && p.spec.publishTime,
-          url: p.status && p.status.permalink,
-        }))
-        .filter((p) => p.published);
-    } catch (e) {
-      console.warn("[Calendar] 解析文章数据失败:", e);
-      return [];
-    }
-  }
-  const calendarPostsData = loadCalendarPosts();
-
-  // ===== 状态 =====
-  let displayYear = new Date().getFullYear();
-  let displayMonth = new Date().getMonth();
-  let currentView = "day"; // 'day' | 'month' | 'year'
-  const postDateMap = {};
-  let availableYears = [];
-
-  function buildPostDateMap() {
-    const yearsSet = new Set();
-    calendarPostsData.forEach((post) => {
-      const date = new Date(post.published);
-      if (Number.isNaN(date.getTime())) return;
-      const dateKey =
-        date.getFullYear() +
-        "-" +
-        String(date.getMonth() + 1).padStart(2, "0") +
-        "-" +
-        String(date.getDate()).padStart(2, "0");
-      if (!postDateMap[dateKey]) {
-        postDateMap[dateKey] = [];
-      }
-      postDateMap[dateKey].push(post);
-      yearsSet.add(date.getFullYear());
-    });
-    availableYears = Array.from(yearsSet).sort((a, b) => b - a);
-  }
-
-  function renderWeekdays() {
-    const el = document.getElementById("calendar-weekdays");
-    if (!el) return;
-    el.innerHTML = calendarWeekDays
-      .map(
-        (day) =>
-          `<div class="text-center text-xs font-medium text-neutral-500 dark:text-neutral-400">${day}</div>`,
-      )
-      .join("");
-  }
-
-  function renderHeatmap() {
-    const container = document.getElementById("heatmap-container");
-    const monthsEl = document.getElementById("heatmap-months");
-    const gridEl = document.getElementById("heatmap-grid");
-    if (!container || !monthsEl || !gridEl) return;
-
-    const showHeatmap =
-      document
-        .querySelector("[data-show-heatmap]")
-        ?.getAttribute("data-show-heatmap") !== "false";
-
-    container.style.display =
-      currentView === "day" && showHeatmap ? "block" : "none";
-    if (currentView !== "day" || !showHeatmap) return;
-
-    monthsEl.innerHTML = Array.from(
-      { length: 12 },
-      (_, i) =>
-        `<span class="text-center text-[10px] text-neutral-400 dark:text-neutral-500">${i + 1}</span>`,
-    ).join("");
-
-    const heatmapData = Array.from({ length: 12 }, () => [0, 0, 0, 0]);
-    calendarPostsData.forEach((post) => {
-      const date = new Date(post.published);
-      if (Number.isNaN(date.getTime())) return;
-      if (date.getFullYear() !== displayYear) return;
-      const month = date.getMonth();
-      const day = date.getDate();
-      const week = Math.min(Math.floor((day - 1) / 7), 3);
-      heatmapData[month][week]++;
-    });
-
-    const opacityLevels = [0, 0.45, 0.65, 0.85, 1];
-    let cellsHtml = "";
-    for (let week = 0; week < 4; week++) {
-      for (let month = 0; month < 12; month++) {
-        const count = heatmapData[month][week];
-        const level = Math.min(count, 4);
-        const bgStyle =
-          count === 0
-            ? "background-color: var(--btn-plain-bg-hover)"
-            : `background-color: var(--primary); opacity: ${opacityLevels[level]}`;
-        const tooltip = calendarHeatmapWeekTemplate
-          .replace("%month%", month + 1)
-          .replace("%week%", week + 1)
-          .replace("%count%", count);
-        cellsHtml += `<div class="heatmap-cell rounded-sm" style="${bgStyle}" data-tooltip="${tooltip}" data-month="${month}"></div>`;
+    // 文章精简数据：读取服务端注入的 JSON，仅保留日历所需字段（过滤无 publishTime 的草稿）
+    function loadCalendarPosts() {
+      const el = document.getElementById("calendar-post-data");
+      if (!el) return [];
+      try {
+        return (JSON.parse(el.textContent || "[]") || [])
+          .map((p) => ({
+            id: p.metadata && p.metadata.name,
+            title: p.spec && p.spec.title,
+            published: p.spec && p.spec.publishTime,
+            url: p.status && p.status.permalink,
+          }))
+          .filter((p) => p.published);
+      } catch (e) {
+        console.warn("[Calendar] 解析文章数据失败:", e);
+        return [];
       }
     }
-    gridEl.innerHTML = cellsHtml;
+    const calendarPostsData = loadCalendarPosts();
 
-    gridEl.querySelectorAll(".heatmap-cell[data-month]").forEach((cell) => {
-      cell.addEventListener("click", () => {
-        displayMonth = parseInt(cell.getAttribute("data-month"));
-        currentView = "day";
-        renderCalendar();
+    // ===== 状态 =====
+    let displayYear = new Date().getFullYear();
+    let displayMonth = new Date().getMonth();
+    let currentView = "day"; // 'day' | 'month' | 'year'
+    const postDateMap = {};
+    let availableYears = [];
+
+    function buildPostDateMap() {
+      const yearsSet = new Set();
+      calendarPostsData.forEach((post) => {
+        const date = new Date(post.published);
+        if (Number.isNaN(date.getTime())) return;
+        const dateKey =
+          date.getFullYear() +
+          "-" +
+          String(date.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(date.getDate()).padStart(2, "0");
+        if (!postDateMap[dateKey]) {
+          postDateMap[dateKey] = [];
+        }
+        postDateMap[dateKey].push(post);
+        yearsSet.add(date.getFullYear());
       });
-    });
-
-    let tooltipEl = document.getElementById("heatmap-tooltip");
-    if (!tooltipEl) {
-      tooltipEl = document.createElement("div");
-      tooltipEl.id = "heatmap-tooltip";
-      Object.assign(tooltipEl.style, {
-        position: "fixed",
-        padding: "4px 8px",
-        borderRadius: "6px",
-        fontSize: "0.75rem",
-        lineHeight: "1.2",
-        background: "rgba(0,0,0,0.8)",
-        color: "#fff",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-        pointerEvents: "none",
-        opacity: "0",
-        transition: "opacity 0.15s ease",
-        zIndex: "9999",
-        whiteSpace: "nowrap",
-      });
-      document.body.appendChild(tooltipEl);
-    }
-    gridEl.querySelectorAll(".heatmap-cell[data-tooltip]").forEach((cell) => {
-      cell.addEventListener("mouseenter", () => {
-        tooltipEl.textContent = cell.getAttribute("data-tooltip");
-        tooltipEl.style.opacity = "1";
-        const rect = cell.getBoundingClientRect();
-        tooltipEl.style.left =
-          rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2 + "px";
-        tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 6 + "px";
-      });
-      cell.addEventListener("mouseleave", () => {
-        tooltipEl.style.opacity = "0";
-      });
-    });
-  }
-
-  function renderCalendar() {
-    const container = document.getElementById("calendar-view-container");
-    const monthContainer = document.getElementById("month-view-container");
-    const yearContainer = document.getElementById("year-view-container");
-    const postsContainer = document.getElementById("calendar-posts");
-
-    if (container)
-      container.style.display = currentView === "day" ? "block" : "none";
-    if (monthContainer)
-      monthContainer.style.display = currentView === "month" ? "grid" : "none";
-    if (yearContainer)
-      yearContainer.style.display = currentView === "year" ? "grid" : "none";
-    if (postsContainer)
-      postsContainer.style.display = currentView === "day" ? "block" : "none";
-
-    updateHeader();
-
-    if (currentView === "day") {
-      renderDayView();
-    } else if (currentView === "month") {
-      renderMonthView();
-    } else if (currentView === "year") {
-      renderYearView();
+      availableYears = Array.from(yearsSet).sort((a, b) => b - a);
     }
 
-    renderHeatmap();
-  }
+    function renderWeekdays() {
+      const el = document.getElementById("calendar-weekdays");
+      if (!el) return;
+      el.innerHTML = calendarWeekDays
+        .map(
+          (day) =>
+            `<div class="text-center text-xs font-medium text-neutral-500 dark:text-neutral-400">${day}</div>`,
+        )
+        .join("");
+    }
 
-  function updateHeader() {
-    const navDisplay = document.getElementById("current-month-display");
-    const resetBtn = document.getElementById("reset-month-btn");
-    const prevBtn = document.getElementById("prev-month-btn");
-    const nextBtn = document.getElementById("next-month-btn");
+    function renderHeatmap() {
+      const container = document.getElementById("heatmap-container");
+      const monthsEl = document.getElementById("heatmap-months");
+      const gridEl = document.getElementById("heatmap-grid");
+      if (!container || !monthsEl || !gridEl) return;
 
-    if (navDisplay) {
+      const showHeatmap =
+        document
+          .querySelector("[data-show-heatmap]")
+          ?.getAttribute("data-show-heatmap") !== "false";
+
+      container.style.display =
+        currentView === "day" && showHeatmap ? "block" : "none";
+      if (currentView !== "day" || !showHeatmap) return;
+
+      monthsEl.innerHTML = Array.from(
+        { length: 12 },
+        (_, i) =>
+          `<span class="text-center text-[10px] text-neutral-400 dark:text-neutral-500">${i + 1}</span>`,
+      ).join("");
+
+      const heatmapData = Array.from({ length: 12 }, () => [0, 0, 0, 0]);
+      calendarPostsData.forEach((post) => {
+        const date = new Date(post.published);
+        if (Number.isNaN(date.getTime())) return;
+        if (date.getFullYear() !== displayYear) return;
+        const month = date.getMonth();
+        const day = date.getDate();
+        const week = Math.min(Math.floor((day - 1) / 7), 3);
+        heatmapData[month][week]++;
+      });
+
+      const opacityLevels = [0, 0.45, 0.65, 0.85, 1];
+      let cellsHtml = "";
+      for (let week = 0; week < 4; week++) {
+        for (let month = 0; month < 12; month++) {
+          const count = heatmapData[month][week];
+          const level = Math.min(count, 4);
+          const bgStyle =
+            count === 0
+              ? "background-color: var(--btn-plain-bg-hover)"
+              : `background-color: var(--primary); opacity: ${opacityLevels[level]}`;
+          const tooltip = calendarHeatmapWeekTemplate
+            .replace("%month%", month + 1)
+            .replace("%week%", week + 1)
+            .replace("%count%", count);
+          cellsHtml += `<div class="heatmap-cell rounded-sm" style="${bgStyle}" data-tooltip="${tooltip}" data-month="${month}"></div>`;
+        }
+      }
+      gridEl.innerHTML = cellsHtml;
+
+      gridEl.querySelectorAll(".heatmap-cell[data-month]").forEach((cell) => {
+        cell.addEventListener("click", () => {
+          displayMonth = parseInt(cell.getAttribute("data-month"));
+          currentView = "day";
+          renderCalendar();
+        });
+      });
+
+      let tooltipEl = document.getElementById("heatmap-tooltip");
+      if (!tooltipEl) {
+        tooltipEl = document.createElement("div");
+        tooltipEl.id = "heatmap-tooltip";
+        Object.assign(tooltipEl.style, {
+          position: "fixed",
+          padding: "4px 8px",
+          borderRadius: "6px",
+          fontSize: "0.75rem",
+          lineHeight: "1.2",
+          background: "rgba(0,0,0,0.8)",
+          color: "#fff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          pointerEvents: "none",
+          opacity: "0",
+          transition: "opacity 0.15s ease",
+          zIndex: "9999",
+          whiteSpace: "nowrap",
+        });
+        document.body.appendChild(tooltipEl);
+      }
+      gridEl.querySelectorAll(".heatmap-cell[data-tooltip]").forEach((cell) => {
+        cell.addEventListener("mouseenter", () => {
+          tooltipEl.textContent = cell.getAttribute("data-tooltip");
+          tooltipEl.style.opacity = "1";
+          const rect = cell.getBoundingClientRect();
+          tooltipEl.style.left =
+            rect.left + rect.width / 2 - tooltipEl.offsetWidth / 2 + "px";
+          tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 6 + "px";
+        });
+        cell.addEventListener("mouseleave", () => {
+          tooltipEl.style.opacity = "0";
+        });
+      });
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById("calendar-view-container");
+      const monthContainer = document.getElementById("month-view-container");
+      const yearContainer = document.getElementById("year-view-container");
+      const postsContainer = document.getElementById("calendar-posts");
+
+      if (container)
+        container.style.display = currentView === "day" ? "block" : "none";
+      if (monthContainer)
+        monthContainer.style.display =
+          currentView === "month" ? "grid" : "none";
+      if (yearContainer)
+        yearContainer.style.display = currentView === "year" ? "grid" : "none";
+      if (postsContainer)
+        postsContainer.style.display = currentView === "day" ? "block" : "none";
+
+      updateHeader();
+
       if (currentView === "day") {
-        if (
-          calendarCurrentLang.startsWith("zh") ||
-          calendarCurrentLang.startsWith("ja")
-        ) {
-          navDisplay.textContent =
-            displayYear + calendarYearText + calendarMonthNames[displayMonth];
-        } else {
-          navDisplay.textContent =
-            calendarMonthNames[displayMonth] + " " + displayYear;
-        }
+        renderDayView();
       } else if (currentView === "month") {
-        navDisplay.textContent = displayYear + calendarYearText;
+        renderMonthView();
       } else if (currentView === "year") {
-        navDisplay.textContent = calendarYearText;
+        renderYearView();
       }
+
+      renderHeatmap();
     }
 
-    if (resetBtn) {
+    function updateHeader() {
+      const navDisplay = document.getElementById("current-month-display");
+      const resetBtn = document.getElementById("reset-month-btn");
+      const prevBtn = document.getElementById("prev-month-btn");
+      const nextBtn = document.getElementById("next-month-btn");
+
+      if (navDisplay) {
+        if (currentView === "day") {
+          if (
+            calendarCurrentLang.startsWith("zh") ||
+            calendarCurrentLang.startsWith("ja")
+          ) {
+            navDisplay.textContent =
+              displayYear + calendarYearText + calendarMonthNames[displayMonth];
+          } else {
+            navDisplay.textContent =
+              calendarMonthNames[displayMonth] + " " + displayYear;
+          }
+        } else if (currentView === "month") {
+          navDisplay.textContent = displayYear + calendarYearText;
+        } else if (currentView === "year") {
+          navDisplay.textContent = calendarYearText;
+        }
+      }
+
+      if (resetBtn) {
+        const now = new Date();
+        const isCurrent =
+          displayYear === now.getFullYear() && displayMonth === now.getMonth();
+        resetBtn.style.display =
+          currentView === "day" && isCurrent ? "none" : "flex";
+      }
+
+      if (prevBtn)
+        prevBtn.style.visibility =
+          currentView === "year" ? "hidden" : "visible";
+      if (nextBtn)
+        nextBtn.style.visibility =
+          currentView === "year" ? "hidden" : "visible";
+    }
+
+    function renderDayView() {
       const now = new Date();
-      const isCurrent =
-        displayYear === now.getFullYear() && displayMonth === now.getMonth();
-      resetBtn.style.display =
-        currentView === "day" && isCurrent ? "none" : "flex";
-    }
+      const currentYear = displayYear;
+      const currentMonth = displayMonth;
+      const currentDate = now.getDate();
+      const isCurrentMonth =
+        currentYear === now.getFullYear() && currentMonth === now.getMonth();
 
-    if (prevBtn)
-      prevBtn.style.visibility = currentView === "year" ? "hidden" : "visible";
-    if (nextBtn)
-      nextBtn.style.visibility = currentView === "year" ? "hidden" : "visible";
-  }
+      const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  function renderDayView() {
-    const now = new Date();
-    const currentYear = displayYear;
-    const currentMonth = displayMonth;
-    const currentDate = now.getDate();
-    const isCurrentMonth =
-      currentYear === now.getFullYear() && currentMonth === now.getMonth();
+      const calendarGrid = document.getElementById("calendar-grid");
+      if (!calendarGrid) return;
 
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const calendarDays = [];
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        calendarDays.push({ day: null, hasPost: false, count: 0, dateKey: "" });
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey =
+          currentYear +
+          "-" +
+          String(currentMonth + 1).padStart(2, "0") +
+          "-" +
+          String(day).padStart(2, "0");
+        const posts = postDateMap[dateKey] || [];
+        calendarDays.push({
+          day,
+          hasPost: posts.length > 0,
+          count: posts.length,
+          dateKey,
+        });
+      }
 
-    const calendarGrid = document.getElementById("calendar-grid");
-    if (!calendarGrid) return;
-
-    const calendarDays = [];
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      calendarDays.push({ day: null, hasPost: false, count: 0, dateKey: "" });
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey =
-        currentYear +
-        "-" +
-        String(currentMonth + 1).padStart(2, "0") +
-        "-" +
-        String(day).padStart(2, "0");
-      const posts = postDateMap[dateKey] || [];
-      calendarDays.push({
-        day,
-        hasPost: posts.length > 0,
-        count: posts.length,
-        dateKey,
-      });
-    }
-
-    calendarGrid.innerHTML = calendarDays
-      .map(({ day, hasPost, count, dateKey }) => {
-        const isToday = day === currentDate && isCurrentMonth;
-        const classes = [
-          "calendar-day aspect-square relative flex cursor-pointer items-center justify-center rounded-sm text-sm",
-        ];
-        if (!day) {
-          classes.push("text-neutral-400 dark:text-neutral-600");
-        } else if (!hasPost) {
-          classes.push("text-neutral-700 dark:text-neutral-300");
-        } else {
-          classes.push("font-bold text-neutral-900 dark:text-neutral-100");
-        }
-        if (isToday) {
-          classes.push("ring-2 ring-(--primary)");
-        }
-        return `
+      calendarGrid.innerHTML = calendarDays
+        .map(({ day, hasPost, count, dateKey }) => {
+          const isToday = day === currentDate && isCurrentMonth;
+          const classes = [
+            "calendar-day aspect-square relative flex cursor-pointer items-center justify-center rounded-sm text-sm",
+          ];
+          if (!day) {
+            classes.push("text-neutral-400 dark:text-neutral-600");
+          } else if (!hasPost) {
+            classes.push("text-neutral-700 dark:text-neutral-300");
+          } else {
+            classes.push("font-bold text-neutral-900 dark:text-neutral-100");
+          }
+          if (isToday) {
+            classes.push("ring-2 ring-(--primary)");
+          }
+          return `
           <div class="${classes.join(" ")}" data-date="${dateKey}" data-has-post="${hasPost}">
             ${day || ""}
             ${hasPost ? '<span class="absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-(--primary)"></span>' : ""}
             ${hasPost && count > 1 ? `<span class="absolute top-0 right-0 text-[10px] font-bold text-(--primary)">${count}</span>` : ""}
           </div>
         `;
-      })
-      .join("");
+        })
+        .join("");
 
-    const currentMonthPosts = calendarPostsData.filter((post) => {
-      const date = new Date(post.published);
-      return (
-        date.getFullYear() === currentYear && date.getMonth() === currentMonth
-      );
-    });
-
-    showMonthlyPosts(currentMonthPosts);
-    setupClickHandlers(currentMonthPosts);
-  }
-
-  function renderMonthView() {
-    const container = document.getElementById("month-view-container");
-    if (!container) return;
-
-    const monthsWithPosts = new Set();
-    calendarPostsData.forEach((post) => {
-      const date = new Date(post.published);
-      if (Number.isNaN(date.getTime())) return;
-      if (date.getFullYear() === displayYear) {
-        monthsWithPosts.add(date.getMonth());
-      }
-    });
-
-    container.innerHTML = calendarMonthNames
-      .map((name, index) => {
-        const isCurrent = index === displayMonth;
-        const hasPost = monthsWithPosts.has(index);
-        const classes = [
-          "relative cursor-pointer rounded-sm p-2 text-center text-sm transition-colors hover:bg-(--btn-plain-bg-hover)",
-        ];
-        if (isCurrent) {
-          classes.push("bg-(--btn-plain-bg-hover) font-bold text-(--primary)");
-        } else {
-          classes.push("text-neutral-700 dark:text-neutral-300");
-        }
-        const dotHtml = hasPost
-          ? '<span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-(--primary)"></span>'
-          : "";
-        return `<div class="${classes.join(" ")}" data-month="${index}">${name}${dotHtml}</div>`;
-      })
-      .join("");
-
-    container.querySelectorAll("[data-month]").forEach((el) => {
-      el.addEventListener("click", () => {
-        displayMonth = parseInt(el.getAttribute("data-month"));
-        currentView = "day";
-        renderCalendar();
+      const currentMonthPosts = calendarPostsData.filter((post) => {
+        const date = new Date(post.published);
+        return (
+          date.getFullYear() === currentYear && date.getMonth() === currentMonth
+        );
       });
-    });
-  }
 
-  function renderYearView() {
-    const container = document.getElementById("year-view-container");
-    if (!container) return;
-
-    container.innerHTML = availableYears
-      .map((year) => {
-        const isCurrent = year === displayYear;
-        const classes = [
-          "relative cursor-pointer rounded-sm p-2 text-center text-sm transition-colors hover:bg-(--btn-plain-bg-hover)",
-        ];
-        if (isCurrent) {
-          classes.push("bg-(--btn-plain-bg-hover) font-bold text-(--primary)");
-        } else {
-          classes.push("text-neutral-700 dark:text-neutral-300");
-        }
-        return `<div class="${classes.join(" ")}" data-year="${year}">${year}<span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-(--primary)"></span></div>`;
-      })
-      .join("");
-
-    container.querySelectorAll("[data-year]").forEach((el) => {
-      el.addEventListener("click", () => {
-        displayYear = parseInt(el.getAttribute("data-year"));
-        currentView = "month";
-        renderCalendar();
-      });
-    });
-  }
-
-  function showMonthlyPosts(currentMonthPosts) {
-    const postsWrapper = document.getElementById("calendar-posts");
-    const postsList = document.getElementById("calendar-posts-list");
-    const divider = document.getElementById("calendar-posts-divider");
-
-    if (postsWrapper) {
-      postsWrapper.style.display =
-        currentMonthPosts.length > 0 ? "block" : "none";
+      showMonthlyPosts(currentMonthPosts);
+      setupClickHandlers(currentMonthPosts);
     }
 
-    if (postsList) {
-      postsList.innerHTML = currentMonthPosts
-        .map((post) => {
-          const date = new Date(post.published);
-          const dateStr = date.getMonth() + 1 + "-" + date.getDate();
-          return `
+    function renderMonthView() {
+      const container = document.getElementById("month-view-container");
+      if (!container) return;
+
+      const monthsWithPosts = new Set();
+      calendarPostsData.forEach((post) => {
+        const date = new Date(post.published);
+        if (Number.isNaN(date.getTime())) return;
+        if (date.getFullYear() === displayYear) {
+          monthsWithPosts.add(date.getMonth());
+        }
+      });
+
+      container.innerHTML = calendarMonthNames
+        .map((name, index) => {
+          const isCurrent = index === displayMonth;
+          const hasPost = monthsWithPosts.has(index);
+          const classes = [
+            "relative cursor-pointer rounded-sm p-2 text-center text-sm transition-colors hover:bg-(--btn-plain-bg-hover)",
+          ];
+          if (isCurrent) {
+            classes.push(
+              "bg-(--btn-plain-bg-hover) font-bold text-(--primary)",
+            );
+          } else {
+            classes.push("text-neutral-700 dark:text-neutral-300");
+          }
+          const dotHtml = hasPost
+            ? '<span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-(--primary)"></span>'
+            : "";
+          return `<div class="${classes.join(" ")}" data-month="${index}">${name}${dotHtml}</div>`;
+        })
+        .join("");
+
+      container.querySelectorAll("[data-month]").forEach((el) => {
+        el.addEventListener("click", () => {
+          displayMonth = parseInt(el.getAttribute("data-month"));
+          currentView = "day";
+          renderCalendar();
+        });
+      });
+    }
+
+    function renderYearView() {
+      const container = document.getElementById("year-view-container");
+      if (!container) return;
+
+      container.innerHTML = availableYears
+        .map((year) => {
+          const isCurrent = year === displayYear;
+          const classes = [
+            "relative cursor-pointer rounded-sm p-2 text-center text-sm transition-colors hover:bg-(--btn-plain-bg-hover)",
+          ];
+          if (isCurrent) {
+            classes.push(
+              "bg-(--btn-plain-bg-hover) font-bold text-(--primary)",
+            );
+          } else {
+            classes.push("text-neutral-700 dark:text-neutral-300");
+          }
+          return `<div class="${classes.join(" ")}" data-year="${year}">${year}<span class="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-(--primary)"></span></div>`;
+        })
+        .join("");
+
+      container.querySelectorAll("[data-year]").forEach((el) => {
+        el.addEventListener("click", () => {
+          displayYear = parseInt(el.getAttribute("data-year"));
+          currentView = "month";
+          renderCalendar();
+        });
+      });
+    }
+
+    function showMonthlyPosts(currentMonthPosts) {
+      const postsWrapper = document.getElementById("calendar-posts");
+      const postsList = document.getElementById("calendar-posts-list");
+      const divider = document.getElementById("calendar-posts-divider");
+
+      if (postsWrapper) {
+        postsWrapper.style.display =
+          currentMonthPosts.length > 0 ? "block" : "none";
+      }
+
+      if (postsList) {
+        postsList.innerHTML = currentMonthPosts
+          .map((post) => {
+            const date = new Date(post.published);
+            const dateStr = date.getMonth() + 1 + "-" + date.getDate();
+            return `
           <a href="${post.url}" class="flex items-center justify-between rounded-sm px-2 py-1 text-sm text-neutral-700 transition-colors hover:bg-(--btn-plain-bg-hover) hover:text-(--primary) dark:text-neutral-300 dark:hover:text-(--primary)">
             <span class="truncate">${post.title}</span>
             <span class="ml-2 whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">${dateStr}</span>
           </a>
         `;
-        })
-        .join("");
+          })
+          .join("");
 
-      if (divider) {
-        divider.style.display = currentMonthPosts.length > 0 ? "block" : "none";
+        if (divider) {
+          divider.style.display =
+            currentMonthPosts.length > 0 ? "block" : "none";
+        }
       }
     }
-  }
 
-  function setupClickHandlers(currentMonthPosts) {
-    const postsWrapper = document.getElementById("calendar-posts");
-    const postsList = document.getElementById("calendar-posts-list");
-    const divider = document.getElementById("calendar-posts-divider");
+    function setupClickHandlers(currentMonthPosts) {
+      const postsWrapper = document.getElementById("calendar-posts");
+      const postsList = document.getElementById("calendar-posts-list");
+      const divider = document.getElementById("calendar-posts-divider");
 
-    let currentSelectedDay = null;
+      let currentSelectedDay = null;
 
-    document
-      .querySelectorAll(".calendar-day[data-date]")
-      .forEach((dayElement) => {
-        dayElement.addEventListener("click", () => {
-          const dateKey = dayElement.getAttribute("data-date");
-          const hasPost = dayElement.getAttribute("data-has-post") === "true";
+      document
+        .querySelectorAll(".calendar-day[data-date]")
+        .forEach((dayElement) => {
+          dayElement.addEventListener("click", () => {
+            const dateKey = dayElement.getAttribute("data-date");
+            const hasPost = dayElement.getAttribute("data-has-post") === "true";
 
-          if (!hasPost || !dateKey) return;
+            if (!hasPost || !dateKey) return;
 
-          if (currentSelectedDay === dayElement) {
-            dayElement.classList.remove("calendar-day-selected");
-            currentSelectedDay = null;
-            showMonthlyPosts(currentMonthPosts);
-            return;
-          }
-
-          if (currentSelectedDay) {
-            currentSelectedDay.classList.remove("calendar-day-selected");
-          }
-
-          dayElement.classList.add("calendar-day-selected");
-          currentSelectedDay = dayElement;
-
-          const posts = postDateMap[dateKey] || [];
-
-          if (posts.length > 0 && postsList) {
-            if (postsWrapper) {
-              postsWrapper.style.display = "block";
+            if (currentSelectedDay === dayElement) {
+              dayElement.classList.remove("calendar-day-selected");
+              currentSelectedDay = null;
+              showMonthlyPosts(currentMonthPosts);
+              return;
             }
 
-            postsList.innerHTML = posts
-              .map((post) => {
-                const date = new Date(post.published);
-                const dateStr = date.getMonth() + 1 + "-" + date.getDate();
-                return `
+            if (currentSelectedDay) {
+              currentSelectedDay.classList.remove("calendar-day-selected");
+            }
+
+            dayElement.classList.add("calendar-day-selected");
+            currentSelectedDay = dayElement;
+
+            const posts = postDateMap[dateKey] || [];
+
+            if (posts.length > 0 && postsList) {
+              if (postsWrapper) {
+                postsWrapper.style.display = "block";
+              }
+
+              postsList.innerHTML = posts
+                .map((post) => {
+                  const date = new Date(post.published);
+                  const dateStr = date.getMonth() + 1 + "-" + date.getDate();
+                  return `
             <a href="${post.url}" class="flex items-center justify-between rounded-sm px-2 py-1 text-sm text-neutral-700 transition-colors hover:bg-(--btn-plain-bg-hover) hover:text-(--primary) dark:text-neutral-300 dark:hover:text-(--primary)">
               <span class="truncate">${post.title}</span>
               <span class="ml-2 whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">${dateStr}</span>
             </a>
           `;
-              })
-              .join("");
+                })
+                .join("");
 
-            if (divider) {
-              divider.style.display = "block";
+              if (divider) {
+                divider.style.display = "block";
+              }
             }
-          }
+          });
         });
-      });
-  }
-
-  function changeMonth(delta) {
-    if (currentView === "day") {
-      displayMonth += delta;
-      if (displayMonth > 11) {
-        displayMonth = 0;
-        displayYear++;
-      } else if (displayMonth < 0) {
-        displayMonth = 11;
-        displayYear--;
-      }
-    } else if (currentView === "month") {
-      displayYear += delta;
     }
-    renderCalendar();
-  }
 
-  function resetToToday() {
-    const now = new Date();
-    displayYear = now.getFullYear();
-    displayMonth = now.getMonth();
-    currentView = "day";
-    renderCalendar();
-  }
-
-  function initCalendar() {
-    const now = new Date();
-    displayYear = now.getFullYear();
-    displayMonth = now.getMonth();
-
-    buildPostDateMap();
-    renderWeekdays();
-    renderCalendar();
-
-    const prevBtn = document.getElementById("prev-month-btn");
-    const nextBtn = document.getElementById("next-month-btn");
-    const resetBtn = document.getElementById("reset-month-btn");
-    const navDisplay = document.getElementById("current-month-display");
-
-    if (prevBtn) prevBtn.onclick = () => changeMonth(-1);
-    if (nextBtn) nextBtn.onclick = () => changeMonth(1);
-    if (resetBtn) resetBtn.onclick = () => resetToToday();
-
-    if (navDisplay) {
-      navDisplay.onclick = () => {
-        if (currentView === "day") {
-          currentView = "month";
-        } else if (currentView === "month") {
-          currentView = "year";
+    function changeMonth(delta) {
+      if (currentView === "day") {
+        displayMonth += delta;
+        if (displayMonth > 11) {
+          displayMonth = 0;
+          displayYear++;
+        } else if (displayMonth < 0) {
+          displayMonth = 11;
+          displayYear--;
         }
-        renderCalendar();
-      };
+      } else if (currentView === "month") {
+        displayYear += delta;
+      }
+      renderCalendar();
     }
-  }
 
-  // Swup 切页重跑本脚本时避免重复注册监听器
-  if (!window.__calendarInit) {
-    window.__calendarInit = true;
-    document.addEventListener("swup:contentReplaced", () => {
-      setTimeout(initCalendar, 100);
-    });
-  }
-  initCalendar();
+    function resetToToday() {
+      const now = new Date();
+      displayYear = now.getFullYear();
+      displayMonth = now.getMonth();
+      currentView = "day";
+      renderCalendar();
+    }
+
+    function initCalendar() {
+      const now = new Date();
+      displayYear = now.getFullYear();
+      displayMonth = now.getMonth();
+
+      buildPostDateMap();
+      renderWeekdays();
+      renderCalendar();
+
+      const prevBtn = document.getElementById("prev-month-btn");
+      const nextBtn = document.getElementById("next-month-btn");
+      const resetBtn = document.getElementById("reset-month-btn");
+      const navDisplay = document.getElementById("current-month-display");
+
+      if (prevBtn) prevBtn.onclick = () => changeMonth(-1);
+      if (nextBtn) nextBtn.onclick = () => changeMonth(1);
+      if (resetBtn) resetBtn.onclick = () => resetToToday();
+
+      if (navDisplay) {
+        navDisplay.onclick = () => {
+          if (currentView === "day") {
+            currentView = "month";
+          } else if (currentView === "month") {
+            currentView = "year";
+          }
+          renderCalendar();
+        };
+      }
+    }
+
+    initCalendar();
+  })();
 </script>
 
 <style>

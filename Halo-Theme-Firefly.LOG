@@ -1,0 +1,245 @@
+# Halo-Theme-Firefly.LOG — Ethereal 主题项目开发日志
+
+> 日志方案：项目根目录 `<项目名>.LOG`（与 Firefly 项目约定一致），本地保存、不提交不推送。
+> 本文件首条起自 2026-09-23。
+
+## 2026-09-23 feat 第 1 轮：月历 widget + 樱花特效（自 Firefly 迁移）
+
+### 改动
+- 新增 `src/components/widget/Calendar.astro`（月历 widget，自 Firefly 迁移）：
+  - 数据源：`postFinder.listAll()` 服务端序列化为 `<script type="application/json" id="calendar-post-data">`（`/*[[${postFinder.listAll()}]]*/`，与 #theme-config 同模式），运行期 `JSON.parse` + 精简映射（过滤无 publishTime 的草稿）
+  - i18n：月份/星期/年份/热力图文案经 `[(#{...})]` 注入（wishes.astro 同款反引号写法），随 Halo 语言切换；语言检测用 `document.documentElement.lang`
+  - 图标：`<Icon>` 组件改 Iconify class（material-symbols / mdi），保持 Tailwind 字面量扫描
+  - 交互：月视图/年视图/热力图/当日文章列表/日期选中，逻辑原样保留；Swup 重跑守卫 `window.__calendarInit` 保留
+  - 配置：`widget.show_heatmap`（热力图开关，经 data-show-heatmap 传运行期）
+- 接线：`SideBar.astro` / `RightSideBar.astro` 增加 `th:case="'calendar'"`；`settings.yaml` 左右侧栏部件选项加「日历」+ 热力图开关；`config.ts` Widget 加 `show_heatmap`；3 个 i18n properties 加 calendar.* 文案
+- 新增 `src/scripts/assets/sakura.ts`（樱花特效，自 Firefly SakuraEffect 迁移）：
+  - 仅迁移**主线程 Canvas 2D 实现**（Firefly 自带的完整回退路径；Web Worker + OffscreenCanvas 版不迁——Halo esbuild 经典脚本管线不便打包 worker 文件）
+  - 配置：后台 `effects.sakura` 分组（settings.yaml + config.ts Effects/Sakura 类型），经 `getThemeConfig()` 读取（与 wave.ts 同契约），默认值与 Firefly effectsConfig 一致，`enable` 默认 false（保守，避免更新后所有站点突增全屏特效）
+  - 花瓣图：`public/assets/images/effects/sakura.png`（自 Firefly 拷贝），运行期由 `document.currentScript.src` 推导主题资源路径
+  - `sakuraToggle` 事件监听**移除**（Firefly 显示设置面板的契约，Ethereal 面板当前无樱花开关，属死代码；接入点如需可后续恢复）
+- 新增 `src/components/SakuraEffect.astro`（脚本加载器）：`th:if="${theme.config?.effects?.sakura?.enable == true}"` 门控，未开启时不下载 sakura.js；挂载于 `Layout.astro` `</body>` 前
+
+### 原因
+- 用户指令：第 1 轮仅迁移月历 + 樱花两个 Firefly 功能；第 2 轮再做 UI 差异项 D1–D5
+
+### 验证
+- `pnpm astro check`：125 文件，**0 新增 error/hint**（仅 1 个基线既有错误，见下）
+- `pnpm build:only`：EXIT 0，25 页构建完成，21 个经典脚本压缩（185.1K → 104.0K）
+- 产物抽查（templates/）：sakura.js 生成、sakura.png 拷贝、樱花 th:if 门控在各页正确、calendar-post-data JSON 注入完整、[(#{...})] i18n 保留、th:case 2 处、图标类保留、Calendar :global CSS 进打包 CSS、WidgetLayout 标题 i18n 正确
+- **无法实机验证**：Halo 服务端 Thymeleaf 渲染（[(#{...})]/[[...]]/th:case/th:attr）与浏览器端日历交互、樱花动画——本地无 Halo 实例，需用户部署到 Halo 实机验证（守则 6 说明）
+
+### 回滚
+- 未提交。`git checkout` 相关文件 + 删除 4 个新文件（Calendar.astro / SakuraEffect.astro / sakura.ts / public/assets/images/effects/）即可；settings.yaml / config.ts / i18n 用 git checkout 还原
+
+### 待跟进
+1. **Halo 实机验证**（必需）：启用主题后侧边栏加「日历」、后台开启樱花，检查渲染与控制台
+2. **ts(2321) 基线既有错误**：`pnpm astro check` 报 `astro.config.mjs:73 Excessive stack depth`，经清缓存基线复现（122 文件同样 1 error），与本次改动无关；Node 22/24 均复现，排除本机 node 版本因素；CI 在 Linux runner 未复现原因待查（可能与 TS 6.0.3 + astro 7.2.8 平台相关）。不属本轮范围，未修
+3. **排查教训（流程反思）**：此前隔离测试未清 `.astro` 缓存导致假阳性结论（"移出文件就干净"），基线判断全部作废；正确做法 = 清缓存 + 干净基线对比
+4. `WidgetLayout.astro` 既有细节：未传 style 时产物含 `style="undefined; --collapsedHeight..."`（所有 widget 一致），浏览器忽略无效声明，不影响功能；可后续统一修
+5. 日历大数据量：`postFinder.listAll()` 全量序列化进页面（每篇约 1-2KB），文章上千后体积偏大；后续可改专用轻量接口或归档数据
+6. `AGENTS.md` 目录结构速览可补 Calendar/Sakura 一行（文档维护，另轮处理）
+
+## 2026-09-23 feat 第 2 轮：UI 差异项 D1/D2/D3/D5（自 Firefly 迁移）
+
+### 改动
+- **D1 浮控按钮组**：**无需改动**（修正早前分析盲区——Ethereal 的 BackToTop.astro 已是完整组合浮控：回顶/首页/评论/目录/自定义，与 Firefly FloatingControls 等价，仅缺沉浸阅读入口，由 D5 补齐）
+- **D2 导航栏组成**：
+  - `Navbar.astro` 新增后台入口按钮（`/console`，material-symbols admin-panel-settings，桌面端显示）；i18n 加 `nav.admin` 三语
+  - 未做：MusicPlayer 导航栏浮层（Ethereal 音乐为侧边栏 widget，双入口冗余）、背景视频按钮（Ethereal 无视频壁纸能力）
+- **D3 文章卡片 hover**：`PostCard.astro` 封面图片补 Firefly 式 `group-hover:scale-110 group-active:scale-115` 放大（唯一真实差异；card-hover-lift 为 Ethereal 设置项保留）
+- **D5 沉浸式阅读**（完整迁移）：
+  - `src/scripts/assets/immersive-reading.ts`（经典脚本管线）：状态机/进出切换/可见性/Esc/视口/幂等守卫；适配 Ethereal（配置走 getThemeConfig 的 post.immersiveReading、i18n 走 __etherealI18n、文章页用 #post-container 判定、不移植 TOCManager 改用 Ethereal table-of-contents Web Component）
+  - `src/styles/immersive-reading.css`：选择器映射到 Ethereal id（#sidebar/#right-sidebar/#banner-wrapper/#main-panel-wrapper/#category-bar/footer/#wave-container/#toc-popup/#canvas_sakura）
+  - `ImmersiveReading.astro`（浮控按钮，auto-stories↔logout 图标交叉切换，挂入 BackToTop 浮控组）
+  - `ImmersiveTOC.astro`（全高目录抽屉，post.astro 渲染；复用 table-of-contents + data-toc-scroll + active-indicator）
+  - `config.ts` Post 加 immersiveReading 类型；settings.yaml post 组加沉浸阅读子组（enable/defaultOn/tocEnabled/tocPosition）；i18n 加 common.toc/expand/collapse + post.enter/exitImmersiveReading 三语
+- `astro.config.mjs`：astro-icon include 白名单扩 auto-stories/logout/admin-panel-settings（构建曾因白名单缺失报 Unable to locate icon）
+
+### 原因
+- 用户指令：第 2 轮 UI 差异项 D1–D5 全做、连续迭代到最终版
+
+### 验证
+- `pnpm astro check`：128 文件，0 新增 error/hint（仅基线既有 astro.config ts2321）
+- `pnpm build`：EXIT 0，zip 3.47MB（22 个经典脚本，含 immersive-reading.js）
+- 产物抽查：immersive-reading.js/png、沉浸按钮（浮控组）、沉浸抽屉（post 页 table-of-contents + data-toc-scroll + active-indicator）、CSS 内联进 post 页 Layout chunk、Admin 按钮（/console + 图标）
+- **无法实机验证**：沉浸阅读交互（进/出、目录高亮、Esc 退出）与 Admin 入口跳转需 Halo 实机确认
+
+### 回滚
+- 未推送。git revert 本轮 commit 或 checkout 相关文件 + 删除 4 个新文件
+
+### 待跟进
+1. **D4 字体方案**：Firefly 用 fontsource 子集化（Noto Sans SC），Ethereal 用后台上传字体——机制完全不同，是否迁移待用户裁决
+2. 沉浸阅读实机验证（Halo 部署后）
+3. astro-icon include 白名单后续新增图标时需同步（否则 build 报 Unable to locate icon）
+
+## 2026-09-23 decision D4 字体方案：不做（用户裁决方案 B）
+
+### 决策
+- D4（字体方案迁移）**不做**：保留 Ethereal 后台上传字体 / Google Fonts CSS 方案。
+- 理由：Firefly 的 Noto Sans SC 子集化需引入新依赖（@fontsource-variable/noto-sans-sc + subset-font），
+  守则 8 需批准；且 Ethereal 已有成熟的字体方案，迁移价值不足。用户裁决 B。
+
+### 待跟进
+- D1–D5 全部收尾：D1 无需改动 / D2 后台入口 / D3 卡片 hover / D4 不做 / D5 沉浸阅读。
+- 功能迁移（第 1 轮批准范围）：月历 + 樱花，已完成。
+
+## 2026-09-24 feat 壁纸模式默认值对齐 Firefly（overlay 透明壁纸）
+
+### 改动
+- `settings.yaml`：`layout.bannerLayout.displayMode` 默认值 `banner` → `transparent`（全屏透明壁纸，卡片磨砂半透明，对齐 Firefly 默认 `mode: overlay`）
+- 当前测试实例 configmap 同步更新（displayMode=transparent）
+
+### 验证（Halo 2.26.1 + Playwright 实测）
+- 首页 `data-banner-display="transparent"`，卡片背景 `rgba(255,255,255,0.6)`（与 Firefly 一致），透明 CSS 规则生效
+- `pnpm build` EXIT 0，zip 3.47MB，settings.yaml 默认值已更新
+
+### 实机测试环境（用户反馈问题梳理）
+1. 日历：用户主动在后台关闭（非 bug），功能已迁移
+2. 站点统计：右侧栏默认 site-stats（待用户确认是否改默认）
+3. 音乐加载失败：api.i-meto.com（第三方 Meting API）在测试沙箱不可达，属环境网络问题
+4. 后台设置显示子配置项：待确认（FormKit 折叠行为）
+5. 壁纸模式：✅ 本次已改
+6. 布局整体迁移：尚需按用户截图反馈逐项推进
+
+### 回滚
+- settings.yaml displayMode 改回 banner 即可；configmap 用 json-config API 改回
+
+### 待跟进
+- 站点统计默认值确认、后台设置折叠、布局其余差异项
+
+## 2026-09-24 decision 名称显示一堆配置项：不做改变（Halo array 默认行为）
+
+### 决策
+- 后台侧边栏小部件数组项显示"音乐播放器 0.7 list 9277796687 playlist tencent"（配置项堆在名称后）
+- 根因：Halo FormKit `array` 组件默认渲染数组项全部子字段值（上游 Ethereal 同结构同行为）
+- 用户裁决：默认行为，**不做改变**（不配 itemLabels）
+- 站点统计确认无重复（左右侧栏各一个 site-stats 选项属正常）
+
+## 2026-09-25 · Calendar heatmap 占位符 + 版本号（commit 85b9e4c / 33c206d）
+- 项：修复 heatmap tooltip 模板 `{month}月第{week}周，{count}篇文章` 被 Thymeleaf
+  3.1 当 MessageFormat 参数解析（NumberFormatException: "month"）；主题版本 1.2.4 → 1.2.5。
+- 改动：i18n 三文件占位符改 `%month%`/`%week%`/`%count%`，Calendar.astro 同步 replace；
+  theme.yaml version 提升（清 `?v=` 缓存指纹，解决访客浏览器缓存旧 sakura.js 导致开关不生效）。
+- 验证：测试站 PUT widgetsConfig 启用日历 + heatmap → 48 cells 渲染，
+  data-tooltip="12月第4周，0篇文章" 正确；halo.log 无 NumberFormatException；
+  sakura.js?v=1.2.5 指纹已变。
+- 附带：public/assets/navbar.js 构建产物补提交（61d5a22 漏交，缺 navbar-scrolled 绑定）。
+- 回滚：`git revert 85b9e4c`（占位符回 {..} 即重现报错）；`git revert 33c206d`；
+  版本 1.2.4 已无法回退（缓存指纹语义），如需回版本改 theme.yaml 再打包。
+
+## 2026-09-25 · 全屏壁纸对齐 Firefly（commit 待记）
+- 项：全屏模式下壁纸不常驻（absolute 随内容滚出首屏 vs Firefly fixed 钉视口）。
+- 改动：
+  1. `html[data-banner-display=fullscreen] #banner-wrapper` → position:fixed!important;
+     top/left/right:0!important; **translate:0!important**（抵消
+     .is-home.enable-banner 的 --tw-translate-y:--banner-height-extend=65vh=585px 推移；
+     该规则特异性 1-2-0 高于本规则 1-1-1，必须 important）。
+  2. 全屏隐藏 #wave-container（display:none!important；DOM 有 tailwind .block 类，
+     utilities 层晚于 components 层，层序优先于特异性——必须 important）。
+     对齐 Firefly "Fullscreen 模式不需要水波纹和渐变过渡"。
+  3. 全屏 #scroll-down-indicator → position:fixed（Firefly 同款）。
+  4. 新经典脚本 fullscreen-hero.js：全屏首页 hero 标题滚动视差
+     translateY(-scrollY) + 0.5 视口高完全淡出（对齐 Firefly requestFullscreenTitleParallax）；
+     MainGridLayout.astro 补 <script> 引用（经典脚本管线是手写引用，非自动注入！）。
+  5. 版本号 1.2.5 → 1.2.6（清 assets 缓存指纹）。
+- 关键教训：Tailwind v4 下 utilities 层（.absolute/.block）晚于 components 层，
+  作者 CSS（非 layered）被 utilities 覆盖时，层序优先于特异性；transparent 模式
+  wrapper 规则用 !important 即主题内既有先例。
+- 验证（Playwright 实测）：全屏 wrapper fixed top:0 滚动不变；wave display:none；
+  滚 400 hero translateY(-400px) opacity 0.11；横幅模式回归（wave 显示、wrapper
+  absolute、无 hero 视差）全绿。
+- 回滚：git revert 本 commit + 版本回 1.2.5 需重打包。
+- 待跟进：Halo 主题升级热加载后资源端可能短时返回旧内容（同名 hash 文件），
+  需重启 Halo 进程清内存缓存；正式发布建议升 1.2.6 起新指纹。
+
+## 2026-09-25 · 全屏壁纸模糊度+透明度可调（commit 待记）
+- 项：全屏模式壁纸参数对齐 Firefly（模糊斜坡）+ 用户扩展（透明度可调）。
+- 改动：
+  1. CSS：html[fullscreen] #banner (img/video/mobile) 增加 opacity+blur 规则
+     （--fs-wallpaper-opacity / --fullscreen-wallpaper-blur，scale(1.06) 裁模糊边）。
+  2. JS（fullscreen-hero.ts）：blur 滚动斜坡 0→max（300px 到顶，max=面板模糊度，
+     2px 量化+记忆化，对齐 Firefly syncFullscreenBlur）；mode 切换自动复位。
+  3. 面板（DisplaySettings.svelte）：透明度/模糊滑块扩展到全屏模式
+     （原仅透明模式）；卡片透明度行保持仅透明模式。
+  4. 新变量 --fs-wallpaper-opacity：与 --transparent-wallpaper-opacity 同参数不同回退
+     （全屏 1 / 透明 0.8），Layout.astro 内联 style + 访客合并 + applyWallpaperParams 三处同步。
+  5. 版本 1.2.6 → 1.2.7 → 1.2.8（fullscreen-hero.js 内容变，需新指纹）。
+- Firefly 语义差异说明：Firefly 全屏透明度滑块是隐藏的（恒不透明）；用户要求可调，
+  故扩展为可调（默认 1 不透明，对齐 Firefly 默认观感）。
+- 验证（Playwright 实测）：默认态全屏 opacity=1/blur=0；滚300 blur=10px；
+  面板设 60%/20px → 全屏 0.6/20px、透明联动 0.6；横幅模式 filter:none 回归；
+  configmap 删 wallpaperOpacity → 全屏 1 / 透明 0.8 各自默认正确。
+- 回滚：git revert 本 commit；版本回 1.2.6 需重打包。
+- 待跟进：无。
+
+## 2026-09-25 · 全屏经典/沉浸双布局 + 非首页对齐 + 遮罩/渐变/导航栏（commit 待记）
+- 用户裁决：Firefly 全都要。全屏 = 经典(classic,文档流不模糊不透明卡,波形开) +
+  沉浸(hero,fixed 钉屏模糊斜坡半透明卡,波形关) 双布局，面板可切；非首页 45vh/380px
+  横幅 + 居中页面标题；首页加 dim 遮罩 + 底部渐变；导航栏玻璃对齐 Firefly(card-bg 45%)。
+  全屏滑块 = 背景模糊度 + 卡片透明度（非壁纸透明度；卡片半透明让模糊透出，故删 --fs-wallpaper-opacity）。
+- 改动：
+  1. setting-utils.ts：FullscreenLayoutMode("classic"|"hero") + get/stored/apply/
+     setFullscreenLayout（写 localStorage + 设 html[data-fullscreen-layout] 即时生效，
+     fullscreen-hero.ts MutationObserver 监听重跑 blur）。
+  2. Layout.astro：SSR 默认 data-fullscreen-layout="classic"；首帧脚本读 localStorage 覆写。
+  3. components.css：全屏 classic 覆写块（wrapper relative、img filter:none、波形显示、
+     卡片不透明）；hero 专属门控（波形隐藏、img blur 斜坡、卡片磨砂半透明）；
+     非首页 --banner-height-non-home=max(45vh,380px) 高度/panel/wave/移动端隐藏；
+     hero 非首页内容 top 5.5rem + 隐藏 overlay/页面标题/指示器；transparent 隐藏新层；
+     导航栏玻璃 card-bg 45% + 顶部高光发丝线（light/dark）。
+  4. fullscreen-hero.ts：active = fullscreen+hero；blur 首页斜坡 0→max / 非首页固定 max；
+     标题视差仅首页。
+  5. DisplaySettings.svelte：全屏模式加 经典/沉浸 切换（material-symbols 图标入白名单）。
+  6. MainGridLayout.astro：#banner-page-title-overlay(非首页) + #banner-dim-container
+     (首页 rgba 黑遮罩,可配 dimOpacity) + #wallpaper-gradient(透明→页面底色,wave 优先)。
+- **P0 崩溃修复**：非首页页面标题原写 JSX 反条件 `!isHomePage && (...)`，halo 插件不折叠
+  → 落出 th:if="${!isHomePage}"，而 isHomePage 非 Thymeleaf 模型变量 → "!null" 报
+  "cannot convert from null to boolean"，首页/非首页响应在 40KB 处被截断
+  (ERR_INCOMPLETE_CHUNKED_ENCODING)。改法：frontmatter 加 `const isNonHome = !isHomePage;`，
+  条件用 `{isNonHome && (...)}`（正标识符，插件按页构建时常量折叠：index 移除/archives 保留）；
+  标题文本改用 `th:text={title}`（同 Layout `<title th:text={title}>` 既有写法，避免 `{title}`
+  折叠成字面 i18n 键）。
+- 验证（Playwright 实测）：
+  · classic：relative / filter:none / 卡片不透明 / 波形 block / 渐变 none(wave 优先)。
+  · hero 首页：fixed / 顶部 blur 0px → 滚 300px blur 10px(=默认 max) → 回顶 0px(斜坡可逆)；
+    卡片 rgba(255,255,255,.6) / 波形 none / 渐变 none / dim block。
+  · hero 非首页：fixed / blur 固定 10px / 内容 top 88(no-banner-panel-top) / 页面标题+overlay 隐藏。
+  · 非首页横幅：页面标题层存在(index 无/archives 有)。
+  · live 无刷新翻转 data-fullscreen-layout：classic→hero pos relative→fixed、卡片不透明→半透明，
+    证实面板按钮 setFullscreenLayout 控制链即时生效（无需 reload）。
+  · curl 首页/archives/categories 全 200 ~175KB 完整、halo.log 无 Thymeleaf/SPEL 异常。
+- 回滚：git revert 本 commit；版本 1.3.0 需重打包回 1.2.8。
+- 待跟进(P2，未做，待用户确认)：面板 gradient 独立开关、轮播壁纸开关、非首页 classic 高度语义
+  (当前 fullscreen-classic 非首页沿用 100vh 文档流，未套 45vh)。
+
+## 2026-09-25 · 全屏面板滑块修复（classic 收纳 + hero 模糊传播，1.3.0 → 1.3.1）
+- 用户反馈：经典模式把透明设置收纳折叠；沉浸模式模糊度滑块不生效。
+- 改动：
+  1. DisplaySettings.svelte：showWallpaper 门控加 `fullscreenLayout === "hero"`——
+     经典 fullscreen 不模糊/卡片恒不透明，透明设置区整段隐藏（收纳）；hero 显示模糊度+卡片透明度。
+  2. fullscreen-hero.ts：加 body style MutationObserver（attributeFilter:["style"]），
+     面板模糊滑块写 body --transparent-wallpaper-blur 变化时重算 --fullscreen-wallpaper-blur
+     （对齐 Firefly 监听 wrapper --overlay-blur 的机制；注释"否则滑块表现为失效"同款）。
+- 验证（Playwright 实测）：
+  · classic 壁纸tab 0 滑块、无[透明设置]；hero 壁纸tab 2 滑块[模糊度/卡片透明度]。
+  · hero 模糊传播：滑块=24 滚300 → --fullscreen-wallpaper-blur=24px；滑块=4 → 4px（实时）。
+- 回滚：git revert 本 commit；版本回 1.3.0 需重打包。
+
+## [2026-10-22] 1.3.2 全面排查：清除 swup:contentReplaced 死监听 + 修复日历换页顶层 const 崩溃
+- 项：全面分析（D1 死监听 + 逐模块对比 Firefly）+ 修复
+- 决策：全面对比发现 3 处 swup:contentReplaced（v3 事件名，v4 从不分发）死监听；
+  删之安全（SwupScriptsPlugin 换页重执行兜底，BackToTop 同款注释证实）
+- 改动：
+  1. navbar.ts / immersive-reading.ts / Calendar.astro：删除 swup:contentReplaced 死监听
+  2. Calendar.astro：发现并修复真 bug —— 顶层 const（calendarMonthNames 等）在 Swup
+     换页重执行时跨页重复声明 → "Identifier has already been declared" 崩溃。
+     用 IIFE 包裹整个脚本体（顶层 const 变局部，重执行不再冲突；addEventListener
+     均在每帧新 DOM 节点上，无累积）。该 bug 在 1.3.1 已存在（守卫只包 addEventListener
+     挡不住顶层 const），本次删除守卫时暴露
+- 验证（Playwright，halo 8090）：日历渲染 ✓ 导航栏滚动隐藏 ✓ 沉浸按钮 ✓
+  换页文章页 ✓ 日历换页后 ✓ 无 JS 错误（music-player CSS preload 警告为既有良性警告）
+- 回滚：git checkout src/scripts/assets/navbar.ts src/scripts/assets/immersive-reading.ts
+  src/components/widget/Calendar.astro
+- 待跟进：gradient 独立开关（Firefly common.gradient.enable）、轮播壁纸开关、
+  非首页 classic 高度语义（P2）

@@ -232,11 +232,6 @@ function initImmersiveReading() {
 // 幂等守卫防重复注册监听器）
 (function setup() {
   initImmersiveReading();
-  if (typeof document !== "undefined") {
-    document.addEventListener("swup:contentReplaced", () => {
-      setTimeout(initImmersiveReading, 100);
-    });
-  }
 })();
 
 w.toggleImmersiveReading = toggleImmersiveReading;

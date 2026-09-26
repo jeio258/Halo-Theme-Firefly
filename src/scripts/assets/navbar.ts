@@ -306,10 +306,6 @@ if (!window.__navbarPanelToggleBound) {
   if (!window.__navbarScrolledBound) {
     window.__navbarScrolledBound = true;
     window.addEventListener("scroll", onScroll, { passive: true });
-    // Swup 换页后重新按当前滚动位置校正（换页可能保留/重置滚动）
-    document.addEventListener("swup:contentReplaced", function () {
-      requestAnimationFrame(updateNavbarScrolled);
-    });
   }
   updateNavbarScrolled();
 })();
