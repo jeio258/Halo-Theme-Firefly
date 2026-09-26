@@ -419,6 +419,7 @@ spec:
             mode: single
             src: "/themes/Ethereal/assets/images/demo-banner.png"
             carousel:
+              enable: false
               images: []
               effect: fade
               dots: true
@@ -757,6 +758,9 @@ spec:
           value:
             # banner_wave 三选：disabled 关闭 / enabled 开启 / desktop_only 移动端关闭（触屏设备不加载动画）
             banner_wave: enabled
+            # banner_gradient 三选（对齐 Firefly gradient.enable）：渐变独立于波浪开关；
+            # 关闭时波浪开着也不再显示底部渐变
+            banner_gradient: enabled
             navbar_blur: true
             card_hover_lift: true
             card_border: false
@@ -768,6 +772,18 @@ spec:
               label: 底部波浪效果
               value: enabled
               help: "在 Banner 底部显示波浪过渡效果；移动端关闭指触屏设备不显示动画，可降低性能开销和加载时间"
+              options:
+                - label: 关闭
+                  value: disabled
+                - label: 开启
+                  value: enabled
+                - label: 移动端关闭
+                  value: desktop_only
+            - $formkit: select
+              name: banner_gradient
+              label: 底部渐变过渡
+              value: enabled
+              help: "壁纸底部到页面底色的平滑过渡；独立于波浪开关（波浪开着也可同时显示渐变，对齐 Firefly）"
               options:
                 - label: 关闭
                   value: disabled

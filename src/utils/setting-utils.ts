@@ -544,6 +544,75 @@ export function setWave(enabled: boolean): void {
   applyWave(enabled);
 }
 
+/* ── 底部渐变过渡（独立于波浪；对齐 Firefly gradient：三选/UA 解析 + 属性门控） ── */
+
+/** 后台三选默认（enabled / disabled / desktop_only）按当前视口解析成布尔 */
+export function getDefaultGradient(): boolean {
+  const raw = getCarrier()?.dataset?.gradientDefault;
+  if (raw == null || raw === "" || raw === "enabled") return true;
+  if (raw === "disabled") return false;
+  // desktop_only：移动端（<1024px）默认关
+  return typeof window !== "undefined" ? window.innerWidth >= 1024 : true;
+}
+
+export function getStoredGradient(): boolean {
+  if (!getVisitorSwitches().wallpaperSettings) return getDefaultGradient();
+  const stored = localStorage.getItem("gradientEnabled");
+  return stored == null ? getDefaultGradient() : stored === "true";
+}
+
+/** 应用渐变开关：写 html[data-gradient-enabled]（CSS 门控）；关闭时隐藏渐变 */
+export function applyGradient(enabled: boolean): void {
+  document.documentElement.setAttribute(
+    "data-gradient-enabled",
+    String(enabled),
+  );
+}
+
+export function setGradient(enabled: boolean): void {
+  localStorage.setItem("gradientEnabled", String(enabled));
+  applyGradient(enabled);
+}
+
+export function resetGradient(): void {
+  localStorage.removeItem("gradientEnabled");
+  applyGradient(getDefaultGradient());
+}
+
+/* ── 壁纸轮播开关（对齐 Firefly carousel：默认关=随机一张不轮播；事件驱动重算） ── */
+
+export function getDefaultCarousel(): boolean {
+  return carrierBool("carouselDefault", false);
+}
+
+export function getStoredCarousel(): boolean {
+  if (!getVisitorSwitches().wallpaperSettings) return getDefaultCarousel();
+  const stored = localStorage.getItem("bannerCarouselEnabled");
+  return stored == null ? getDefaultCarousel() : stored === "true";
+}
+
+/** 应用轮播开关：写 html[data-banner-carousel-enabled] + 派发 bannerCarouselChange
+ *  通知 banner-carousel 脚本重算（对齐 Firefly setBannerCarouselEnabled） */
+export function applyCarousel(enabled: boolean): void {
+  document.documentElement.setAttribute(
+    "data-banner-carousel-enabled",
+    String(enabled),
+  );
+  window.dispatchEvent(
+    new CustomEvent("bannerCarouselChange", { detail: { enabled } }),
+  );
+}
+
+export function setCarousel(enabled: boolean): void {
+  localStorage.setItem("bannerCarouselEnabled", String(enabled));
+  applyCarousel(enabled);
+}
+
+export function resetCarousel(): void {
+  localStorage.removeItem("bannerCarouselEnabled");
+  applyCarousel(getDefaultCarousel());
+}
+
 /* ── 首页壁纸标题（banner 标题层显隐，随壁纸设置区开关联动） ── */
 
 export function getDefaultBannerTitle(): boolean {

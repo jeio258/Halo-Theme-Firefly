@@ -496,8 +496,9 @@
     display: none !important;
   }
 
-  /* 底部渐变过渡显示门控（对齐 Firefly：waves 开启时渐变隐藏，waves 优先；
-     全屏 hero 无渐变；透明/纯色隐藏） */
+  /* 底部渐变过渡显示门控（对齐 Firefly waves.css：① 独立开关 data-gradient-enabled
+     false 隐藏；② 波浪开启时渐变隐藏（波浪优先）；③ fullscreen hero / 透明 / 纯色隐藏） */
+  html[data-gradient-enabled="false"] #wallpaper-gradient,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
     #wallpaper-gradient,
   html[data-banner-display="transparent"] #wallpaper-gradient,

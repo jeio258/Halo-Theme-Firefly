@@ -137,6 +137,8 @@ export default defineConfig({
           "admin-panel-settings",
           "view-day-outline-rounded",
           "desktop-landscape-outline-rounded",
+          "gradient-rounded",
+          "photo-library-outline-rounded",
         ],
       },
     }),

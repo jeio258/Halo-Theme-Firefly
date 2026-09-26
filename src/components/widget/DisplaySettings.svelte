@@ -28,6 +28,12 @@
     getDefaultWave,
     getStoredWave,
     setWave,
+    getDefaultGradient,
+    getStoredGradient,
+    setGradient,
+    getDefaultCarousel,
+    getStoredCarousel,
+    setCarousel,
     getDefaultBannerTitle,
     getStoredBannerTitle,
     setBannerTitle,
@@ -36,6 +42,8 @@
     resetWallpaperParams,
     resetWallpaperMode,
     resetWave,
+    resetGradient,
+    resetCarousel,
     resetBannerTitle,
     getDefaultSakuraEnabled,
     getStoredSakuraEnabled,
@@ -77,13 +85,20 @@
   let wallpaperMode = $state<BannerDisplayMode>(getStoredBannerDisplay());
   let fullscreenLayout = $state<FullscreenLayoutMode>(getStoredFullscreenLayout());
   let wave = $state(getStoredWave());
+  let gradient = $state(getStoredGradient());
+  let carousel = $state(getStoredCarousel());
   let bannerTitle = $state(getStoredBannerTitle());
   const defaultBannerDisplay = getDefaultBannerDisplay();
   const defaultWave = getDefaultWave();
+  const defaultGradient = getDefaultGradient();
+  const defaultCarousel = getDefaultCarousel();
   const defaultBannerTitle = getDefaultBannerTitle();
   const dirtyWallpaperMode = $derived(wallpaperMode !== defaultBannerDisplay);
   const dirtyWallpaperSettings = $derived(
-    wave !== defaultWave || bannerTitle !== defaultBannerTitle,
+    wave !== defaultWave ||
+      gradient !== defaultGradient ||
+      carousel !== defaultCarousel ||
+      bannerTitle !== defaultBannerTitle,
   );
 
   // 壁纸参数区跟随访客当前生效模式（仅全屏透明时显示），而非服务端初值
@@ -233,6 +248,16 @@
     setWave(wave);
   }
 
+  function toggleGradient() {
+    gradient = !gradient;
+    setGradient(gradient);
+  }
+
+  function toggleCarousel() {
+    carousel = !carousel;
+    setCarousel(carousel);
+  }
+
   function toggleSakura() {
     sakuraEnabled = !sakuraEnabled;
     setSakuraEnabled(sakuraEnabled);
@@ -275,8 +300,12 @@
 
   function resetWallpaperSettingsBtn() {
     resetWave();
+    resetGradient();
+    resetCarousel();
     resetBannerTitle();
     wave = getDefaultWave();
+    gradient = getDefaultGradient();
+    carousel = getDefaultCarousel();
     bannerTitle = getDefaultBannerTitle();
   }
 
@@ -519,6 +548,20 @@
             <span class="toggle" class:toggle-on={wave}><span class="toggle-knob"></span></span>
           </button>
         {/if}
+        {#if defaultGradient}
+          <button type="button" class="toggle-row" class:toggle-on={gradient} role="switch" aria-checked={gradient} on:click={toggleGradient}>
+            <span class="icon-[material-symbols--gradient-rounded] toggle-icon"></span>
+            <span class="toggle-label">{t("display.gradient", "底部渐变")}</span>
+            <span class="toggle" class:toggle-on={gradient}><span class="toggle-knob"></span></span>
+          </button>
+        {/if}
+        <!-- 轮播开关：不依赖后台默认（carousel 默认关，用户仍需能开），
+             壁纸设置区可见即显示（对齐 Firefly bannerCarouselSwitchable） -->
+        <button type="button" class="toggle-row" class:toggle-on={carousel} role="switch" aria-checked={carousel} on:click={toggleCarousel}>
+          <span class="icon-[material-symbols--photo-library-outline-rounded] toggle-icon"></span>
+          <span class="toggle-label">{t("display.carousel", "壁纸轮播")}</span>
+          <span class="toggle" class:toggle-on={carousel}><span class="toggle-knob"></span></span>
+        </button>
       {/if}
 
       <!-- 透明设置（全屏透明模式） -->

@@ -15,6 +15,8 @@
   th:data-sakura-default="${theme.config?.effects?.sakura?.enable == true}"
   th:data-banner-title-default="${theme.config?.style?.bannerText?.enable != false and (!#strings.isEmpty(theme.config?.style?.bannerText?.title) or !#strings.isEmpty(theme.config?.style?.bannerText?.subtitles))}"
   th:data-wave-default="${theme.config?.style?.styleSwitches?.banner_wave != false and theme.config?.style?.styleSwitches?.banner_wave != 'disabled'}"
+  th:data-gradient-default="${theme.config?.style?.styleSwitches?.banner_gradient ?: 'enabled'}"
+  th:data-carousel-default="${theme.config?.style?.bannerStyle?.carousel?.enable == true}"
   th:data-card-hover-lift="${theme.config?.style?.styleSwitches?.card_hover_lift != false}"
   th:data-card-border-default="${theme.config?.style?.styleSwitches?.card_border == true}"
   th:data-card-follow-default="${theme.config?.style?.styleSwitches?.card_follow_theme == true}"

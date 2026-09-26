@@ -243,3 +243,37 @@
   src/components/widget/Calendar.astro
 - 待跟进：gradient 独立开关（Firefly common.gradient.enable）、轮播壁纸开关、
   非首页 classic 高度语义（P2）
+
+## [2026-10-22] 1.3.3 P2 补足：gradient 独立开关 + 轮播壁纸开关（对齐 Firefly）
+- 决策：用户批准 P2 方案；G6 保留三选（对齐 Firefly desktop/mobile）、C7 随机首张做
+- P2-1 gradient 独立开关（对齐 Firefly waves.css data-gradient-enabled）：
+  - ConfigCarrier: +data-gradient-default（三选原始值 enabled/disabled/desktop_only）
+  - setting-utils: getDefaultGradient（三选按视口解析）/getStoredGradient/applyGradient
+    （写 html[data-gradient-enabled]）/setGradient/resetGradient
+  - Layout 首帧：读 localStorage 写 data-gradient-enabled（desktop_only 按 ≥1024px）
+  - components.css：门控叠加 html[data-gradient-enabled="false"]（保留波浪优先
+    body:not(.wave-disabled)，对齐 Firefly waves.css:149/160）
+  - settings.yaml: +banner_gradient 三选；DisplaySettings: +底部渐变 toggle；
+    astro.config: +gradient-rounded 图标；i18n 3 语言 +display.gradient
+- P2-2 轮播壁纸开关（对齐 Firefly carousel + bannerCarouselChange 事件）：
+  - ConfigCarrier: +data-carousel-default（carousel.enable==true）
+  - settings.yaml: carousel +enable:false（默认关=随机一张不轮播）
+  - setting-utils: getDefaultCarousel/getStoredCarousel/applyCarousel（写
+    html[data-banner-carousel-enabled] + dispatch bannerCarouselChange）/setCarousel/resetCarousel
+  - Layout 首帧：读 localStorage 写 data-banner-carousel-enabled
+  - banner-carousel.ts：随机首张 startIdx（对齐 Firefly：SSR index0→随机，LCP 指向
+    随机张）+ isCarouselEnabled 门控（读 html 属性）+ bannerCarouselChange 监听
+    （开→start/关→stop，instances 控制器数组）
+  - DisplaySettings: +壁纸轮播 toggle（不依赖 defaultCarousel——默认关也要能开，
+    对齐 Firefly bannerCarouselSwitchable）；astro.config: +photo-library-outline-rounded；
+    i18n 3 语言 +display.carousel
+- P2-3 非首页 classic 高度：确认已对齐（variables.css --banner-height-non-home:
+  max(45vh,380px) + components.css:472-475），无需改动
+- 验证（Playwright，halo 8090）：
+  波浪开+渐变默认 → 渐变藏（波浪优先）✓ / 波浪关+渐变开 → 渐变显 ✓ /
+  面板切渐变关 → data-gradient-enabled=false + 渐变隐藏 ✓ / 轮播默认关 false ✓ /
+  面板 3 toggle 显示 ✓ / carousel 切换端到端 false→true + localStorage + 事件 ✓
+  （轮播多图运行时需 configmap 改 carousel 模式，测试站未做——逻辑经代码审查+
+   事件链实测覆盖）
+- 回滚：git checkout 涉及文件；settings.yaml/configmap 若改过需还原
+- 待跟进：无

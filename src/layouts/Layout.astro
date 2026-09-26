@@ -548,13 +548,37 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
           localStorage.removeItem("bannerDisplay");
         }
 
-        // 壁纸设置访客覆盖（波浪 + 首页壁纸标题）：关闭时给 body 加对应
-        // 隐藏类（CSS 门控）；开启/缺省时由后台默认决定
+        // 壁纸设置访客覆盖（波浪 + 底部渐变 + 轮播 + 首页壁纸标题）：关闭时写
+        // 对应 html 属性/body 类（CSS 门控）；开启/缺省时由后台默认决定
         if (enable && on(d.visitorWallpaperSettings)) {
           var waveDefault = d.waveDefault !== "false";
           var waveStored = localStorage.getItem("bannerWave");
           var waveOn = waveStored == null ? waveDefault : waveStored === "true";
           if (!waveOn) body.classList.add("wave-disabled");
+
+          // 底部渐变：三选（enabled/disabled/desktop_only）按视口解析，对齐 Firefly
+          var gradientRaw = d.gradientDefault || "enabled";
+          var gradientStored = localStorage.getItem("gradientEnabled");
+          var gradientOn =
+            gradientStored == null
+              ? gradientRaw === "enabled" ||
+                (gradientRaw === "desktop_only" && window.innerWidth >= 1024)
+              : gradientStored === "true";
+          document.documentElement.setAttribute(
+            "data-gradient-enabled",
+            String(gradientOn),
+          );
+
+          // 轮播：默认关（随机一张不轮播），对齐 Firefly carousel.enable=false
+          var carouselStored = localStorage.getItem("bannerCarouselEnabled");
+          var carouselOn =
+            carouselStored == null
+              ? on(d.carouselDefault)
+              : carouselStored === "true";
+          document.documentElement.setAttribute(
+            "data-banner-carousel-enabled",
+            String(carouselOn),
+          );
 
           var bannerTitleDefault = d.bannerTitleDefault !== "false";
           var bannerTitleStored = localStorage.getItem("bannerTitle");
@@ -565,6 +589,8 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
           if (!bannerTitleOn) body.classList.add("banner-title-disabled");
         } else {
           localStorage.removeItem("bannerWave");
+          localStorage.removeItem("gradientEnabled");
+          localStorage.removeItem("bannerCarouselEnabled");
           localStorage.removeItem("bannerTitle");
         }
       })();

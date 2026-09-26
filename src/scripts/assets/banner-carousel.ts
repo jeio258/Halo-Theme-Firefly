@@ -20,6 +20,8 @@
   var c2 = document.getElementById("banner-mobile");
   if (c1) containers.push(c1);
   if (c2) containers.push(c2);
+  // 已初始化容器的 start/stop 控制器（面板 bannerCarouselChange 事件遍历用）
+  var instances = [];
 
   // #theme-config JSON 解析（I27：写/读 window.__themeConfig 缓存，与
   // scripts/assets/_theme-config.ts 共享契约，避免多脚本重复 JSON.parse）
@@ -71,7 +73,12 @@
     }
 
     var count = slides.length;
-    var index = 0;
+    // 随机首张（对齐 Firefly startIdx）：轮播关闭时=每次刷新随机显示一张；
+    // 开启时也从随机张起播。SSR 默认 index 0 active，这里切到随机 index
+    var index = count > 1 ? Math.floor(Math.random() * count) : 0;
+    for (var k0 = 0; k0 < slides.length; k0++) {
+      slides[k0].classList.toggle("active", k0 === index);
+    }
     var timer = null;
     var cleanupTimer = null; // 切换后的幻灯片清理定时器（快速连点时不累积）
     var visible = true;
@@ -149,18 +156,30 @@
 
     // 等首图加载完全后再开始计时轮换：首图 eager + fetchpriority=high 也需网络
     // 时间，若定时器先行，会在首图未就绪时就切走/或首图半途加载完与计时竞争。
+    // 轮播开关（对齐 Firefly isCarouselEnabled）：读 html[data-banner-carousel-enabled]
+    // ——首帧脚本与面板 setCarousel/applyCarousel 都会写它（localStorage 优先已含在内）
+    function isCarouselEnabled() {
+      return (
+        document.documentElement.getAttribute(
+          "data-banner-carousel-enabled",
+        ) === "true"
+      );
+    }
+
     // load 后照常 start；error 也放行（naturalWidth 恒为 0，不能再走 start 重挂
-    // 监听），避免加载失败导致轮播永久停转。
+    // 监听），避免加载失败导致轮播永久停转。检查的是当前随机首张。
     function firstImgReady() {
-      var el = slides[0];
+      var el = slides[index];
       return !el || (el.complete && el.naturalWidth > 0);
     }
 
     function start() {
+      // 轮播关闭（后台/访客）：不自动轮播，只显示随机首张
+      if (!isCarouselEnabled()) return;
       if (timer !== null || !visible || count < 2) return;
-      if (index === 0 && !firstImgReady()) {
-        slides[0].addEventListener("load", start, { once: true });
-        slides[0].addEventListener("error", startAfterFirstImgError, {
+      if (!firstImgReady()) {
+        slides[index].addEventListener("load", start, { once: true });
+        slides[index].addEventListener("error", startAfterFirstImgError, {
           once: true,
         });
         return;
@@ -286,9 +305,18 @@
     // 首图 eager 升级加载完成后照常启动，preload() 在 go() 轮转时补充
     if (carousel.offsetParent !== null) {
       preload();
-      start();
+      start(); // 内部 isCarouselEnabled 门控：关闭时只显示随机首张
     }
+    instances.push({ start: start, stop: stop });
   }
+
+  window.addEventListener("bannerCarouselChange", function (e) {
+    var enabled = e.detail && e.detail.enabled;
+    for (var i = 0; i < instances.length; i++) {
+      if (enabled) instances[i].start();
+      else instances[i].stop();
+    }
+  });
 
   for (var ci = 0; ci < containers.length; ci++) {
     initBannerCarousel(containers[ci]);
