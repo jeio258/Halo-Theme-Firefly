@@ -1,6 +1,6 @@
 // 全屏 hero 壁纸特效（1:1 对标 Firefly fullscreen-wallpaper-utils.ts）：
 // - 壁纸模糊：首页随下滑 0→max 连续渐变（300px 到顶），非首页固定 max；
-//   max = 面板「背景模糊度」滑块值（body --transparent-wallpaper-blur，未设 10px）。
+//   max = 面板「背景模糊度」滑块值（body --transparent-wallpaper-blur，显式 0 = 不模糊原样生效，未设置默认 10px）。
 // - 首页标题视差：随滚动上移并 0.5 视口高完全淡出（对齐 Firefly updateFullscreenTitleParallax）。
 // 仅「全屏 + hero 布局」生效；classic / 非全屏 复位。
 // 结构：scroll + 面板事件（bannerModeChange / fullscreenLayoutChange /
@@ -30,13 +30,13 @@
   }
   const isHome = () => body.classList.contains("is-home");
 
-  // 面板滑块值（body 计算值）；缺省/0 → 10px（与首帧默认一致，A：保留 Firefly 10px）
+  // 面板滑块值（body 计算值）；显式 0 原样生效（不模糊），仅未设置 → 10px
   function readMaxBlur(): number {
     const raw = getComputedStyle(body)
       .getPropertyValue("--transparent-wallpaper-blur")
       .trim();
     const max = parseFloat(raw);
-    return Number.isFinite(max) && max > 0 ? max : 10;
+    return Number.isFinite(max) && max >= 0 ? max : 10;
   }
 
   function setBlurIfChanged(value: string) {
