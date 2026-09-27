@@ -38,6 +38,8 @@ spec:
             wallpaperBlur: 10
             cardOpacity: 0.6
             fullscreenLayout: classic
+            heroBlurMax: 12
+            heroInnerBlur: 8
           children:
             - $formkit: select
               name: displayMode
@@ -68,6 +70,32 @@ spec:
                 - label: 沉浸（hero）
                   value: hero
             - $formkit: number
+              name: heroBlurMax
+              id: banner_heroBlurMax
+              key: banner_heroBlurMax
+              if: "$get(banner_displayMode).value === 'fullscreen' && $get(banner_fullscreenLayout).value === 'hero'"
+              preserve: true
+              label: 沉浸模糊上限
+              min: 0
+              max: 40
+              step: 2
+              value: 12
+              validation: "min:0|max:40"
+              help: "首页下滑 0.6 视口高度内壁纸模糊从 0 渐变的封顶值（onlynn 原版 12px）；首页下滑到顶后保持该值"
+            - $formkit: number
+              name: heroInnerBlur
+              id: banner_heroInnerBlur
+              key: banner_heroInnerBlur
+              if: "$get(banner_displayMode).value === 'fullscreen' && $get(banner_fullscreenLayout).value === 'hero'"
+              preserve: true
+              label: 非首页沉浸模糊
+              min: 0
+              max: 20
+              step: 1
+              value: 8
+              validation: "min:0|max:20"
+              help: "非首页全屏沉浸布局的固定壁纸模糊（onlynn 原版 8px），与首页渐变无关"
+            - $formkit: number
               name: wallpaperOpacity
               id: banner_transparent_wallpaperOpacity
               key: banner_transparent_wallpaperOpacity
@@ -84,25 +112,27 @@ spec:
               id: banner_transparent_wallpaperBlur
               key: banner_transparent_wallpaperBlur
               if: "$get(banner_displayMode).value === 'transparent'"
+              preserve: true
               label: 背景模糊度
               min: 0
               max: 20
               step: 1
               value: 10
               validation: "min:0|max:20"
-              help: "壁纸背景模糊强度（0~20 px，默认 10），值越大越柔和；导航栏与悬浮按钮糊到的内容随之改变"
+              help: "壁纸背景模糊强度（0~20 px，默认 10），值越大越柔和；导航栏与悬浮按钮糊到的内容随之改变。仅全屏透明模式生效（全屏沉浸布局的模糊见「沉浸模糊上限/非首页沉浸模糊」）"
             - $formkit: number
               name: cardOpacity
               id: banner_transparent_cardOpacity
               key: banner_transparent_cardOpacity
-              if: "$get(banner_displayMode).value === 'transparent'"
+              if: "$get(banner_displayMode).value === 'transparent' || ($get(banner_displayMode).value === 'fullscreen' && $get(banner_fullscreenLayout).value === 'hero')"
+              preserve: true
               label: 卡片透明度
               min: 0.3
               max: 1
               step: 0.05
               value: 0.6
               validation: "min:0.3|max:1"
-              help: "内容/组件卡片、导航栏与悬浮按钮的半透明程度（0.3~1，默认 0.6），需同时开启「高级材质」"
+              help: "内容/组件卡片、导航栏与悬浮按钮的半透明程度（0.3~1，默认 0.6），磨砂效果在透明模式与全屏沉浸（hero）布局下生效"
         - $formkit: group
           name: postList
           label: 文章卡片布局

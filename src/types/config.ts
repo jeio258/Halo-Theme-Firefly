@@ -122,6 +122,10 @@ export interface BannerLayout {
   wallpaperBlur?: number;
   /** 全屏透明模式：卡片/导航栏/悬浮按钮的半透明程度（0.3-1，设为 1 即不透明，需开启高级材质，仅 transparent 模式生效） */
   cardOpacity?: number;
+  /** 全屏沉浸（hero）：首页下滑 0.6 视口高内壁纸模糊 0→该值的封顶值（onlynn 原版 12px，仅 fullscreen+hero 生效） */
+  heroBlurMax?: number;
+  /** 全屏沉浸（hero）：非首页固定壁纸模糊（onlynn 原版 8px，仅 fullscreen+hero 生效） */
+  heroInnerBlur?: number;
 }
 
 /** 菜单栏设置 */

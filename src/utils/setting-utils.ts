@@ -370,8 +370,23 @@ export function getDefaultWallpaperParams(): WallpaperParams {
   };
 }
 
+/** 当前生效的壁纸参数默认值：全屏沉浸（hero）下模糊默认取 heroBlurMax（对齐 onlynn 12px），
+ *  其余模式取 wallpaperBlur（仅透明模式消费） */
+export function getCurrentWallpaperDefaults(): WallpaperParams {
+  const d = getCarrier()?.dataset ?? {};
+  const isHero =
+    document.documentElement.getAttribute("data-banner-display") ===
+      "fullscreen" &&
+    document.documentElement.getAttribute("data-fullscreen-layout") === "hero";
+  return {
+    opacity: parseNum(d.wallpaperOpacity, 0.8),
+    blur: isHero ? parseNum(d.heroBlurMax, 12) : parseNum(d.wallpaperBlur, 10),
+    cardAlpha: parseNum(d.wallpaperCardAlpha, 0.6),
+  };
+}
+
 export function getStoredWallpaperParams(): WallpaperParams {
-  const defaults = getDefaultWallpaperParams();
+  const defaults = getCurrentWallpaperDefaults();
   if (!getVisitorSwitches().transparent) return defaults;
   return {
     opacity: parseNum(
@@ -396,7 +411,16 @@ export function applyWallpaperParams(params: WallpaperParams): void {
     "--transparent-wallpaper-opacity",
     String(params.opacity),
   );
-  body.style.setProperty("--transparent-wallpaper-blur", `${params.blur}px`);
+  // 全屏沉浸（hero）模糊消费 --hero-wallpaper-blur-max（fullscreen-hero 斜坡封顶）；
+  // 全屏透明模式消费 --transparent-wallpaper-blur。面板滑块在两个模式下都写对应变量
+  const isHero =
+    document.documentElement.getAttribute("data-banner-display") ===
+      "fullscreen" &&
+    document.documentElement.getAttribute("data-fullscreen-layout") === "hero";
+  body.style.setProperty(
+    isHero ? "--hero-wallpaper-blur-max" : "--transparent-wallpaper-blur",
+    `${params.blur}px`,
+  );
   body.style.setProperty("--transparent-card-alpha", String(params.cardAlpha));
   // 通知依赖壁纸参数的运行期脚本（fullscreen-hero 模糊 max）重算（事件驱动，替代宽 observer）
   window.dispatchEvent(new CustomEvent("wallpaperParamsChanged"));
@@ -690,7 +714,7 @@ export function resetWallpaperParams(): void {
   localStorage.removeItem("wallpaperOpacity");
   localStorage.removeItem("wallpaperBlur");
   localStorage.removeItem("wallpaperCardAlpha");
-  applyWallpaperParams(getDefaultWallpaperParams());
+  applyWallpaperParams(getCurrentWallpaperDefaults());
 }
 
 export function resetWallpaperMode(): void {
