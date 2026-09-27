@@ -16,7 +16,7 @@
     getDefaultPostListMasonry,
     getStoredPostListMasonry,
     setPostListMasonry,
-    getDefaultWallpaperParams,
+    getCurrentWallpaperDefaults,
     getStoredWallpaperParams,
     setWallpaperParam,
     getDefaultBannerDisplay,
@@ -109,8 +109,8 @@
     showWallpaperMode &&
     switches.wallpaperSettings &&
     (defaultWave || defaultBannerTitle);
-  // 壁纸参数区（透明度/模糊度/卡片透明度）：透明模式全显示；全屏仅沉浸(hero)布局
-  // 显示（经典 classic 不模糊、卡片恒不透明，相关滑块无意义 → 收纳折叠）
+  // 壁纸参数区（透明度/模糊度/卡片透明度）：透明模式全显示；全屏沉浸(hero)布局下
+  // 显示「背景模糊度」+「卡片透明度」（hero 模糊斜坡封顶/卡片磨砂均消费，对齐 onlynn 可调）
   const showWallpaper = $derived(
     switches.transparent &&
       (wallpaperMode === "transparent" ||
@@ -180,7 +180,7 @@
   const defaultCardHoverLift = getDefaultCardHoverLift();
   const defaultNavbarBlur = getDefaultNavbarBlur();
   const defaultPostListMasonry = getDefaultPostListMasonry();
-  const defaultWallpaper = getDefaultWallpaperParams();
+  const defaultWallpaper = getCurrentWallpaperDefaults();
   const dirtyLayout = $derived(layout !== defaultLayout);
   const dirtyCard = $derived(
     cardHoverLift !== defaultCardHoverLift ||
@@ -355,14 +355,18 @@
 
   function resetWallpaper() {
     resetWallpaperParams();
-    const p = getDefaultWallpaperParams();
+    const p = getCurrentWallpaperDefaults();
     wallpaperOpacity = Math.round(p.opacity * 100);
     wallpaperBlur = Math.round(p.blur);
     wallpaperCardAlpha = Math.round(p.cardAlpha * 100);
   }
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute w-80 right-4 px-4 pb-4 pt-0">
+<div
+  id="display-setting"
+  class="float-panel float-panel-closed absolute w-80 right-4 px-4 pb-4 pt-0"
+  style="overscroll-behavior: contain"
+>
   {#if showTabBar}
     <div class="panel-tabs" role="tablist">
       <button type="button" class="panel-tab" class:panel-tab-on={activeTab === "appearance"}
@@ -389,7 +393,7 @@
         <div class="flex flex-row gap-2 mb-3 items-center justify-between">
           <div class="section-title">
             {t("theme.color", "主题色相")}
-            <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md  active:scale-90 will-change-transform"
+            <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md  active:scale-90 will-change-transform"
                     class:opacity-0={hue === defaultHue} class:pointer-events-none={hue === defaultHue} on:click={resetHue}>
               <div class="text-(--btn-content)">
                 <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -415,7 +419,7 @@
       {#if showLayout}
         <div class="section-title mb-3">
           {t("display.layout", "文章布局")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtyLayout} class:pointer-events-none={!dirtyLayout} on:click={resetLayout}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -440,7 +444,7 @@
       {#if showCardStyle}
         <div class="section-title mb-3">
           {t("display.cardStyle", "卡片样式")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtyCard} class:pointer-events-none={!dirtyCard} on:click={resetCard}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -486,7 +490,7 @@
       {#if showWallpaperMode}
         <div class="section-title mb-3">
           {t("display.wallpaperMode", "壁纸模式")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtyWallpaperMode} class:pointer-events-none={!dirtyWallpaperMode} on:click={resetWallpaperModeBtn}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -527,7 +531,7 @@
       {#if showWallpaperSettings && (wallpaperMode === "banner" || wallpaperMode === "fullscreen")}
         <div class="section-title mb-3">
           {t("display.wallpaperSettings", "壁纸设置")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtyWallpaperSettings} class:pointer-events-none={!dirtyWallpaperSettings} on:click={resetWallpaperSettingsBtn}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -564,18 +568,18 @@
         </button>
       {/if}
 
-      <!-- 透明设置（全屏透明模式） -->
+      <!-- 壁纸参数（透明模式全显示；全屏沉浸 hero 仅模糊/卡片透明度，壁纸恒不透明） -->
       {#if showWallpaper}
         <div class="section-title mb-3">
-          {t("display.wallpaper", "透明设置")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          {t("display.wallpaper", "壁纸设置")}
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtyWallpaper} class:pointer-events-none={!dirtyWallpaper} on:click={resetWallpaper}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
             </div>
           </button>
         </div>
-        <!-- 壁纸透明度仅透明模式（对齐 Firefly：全屏壁纸恒不透明） -->
+        <!-- 壁纸透明度仅透明模式（hero 壁纸恒不透明，对齐 onlynn） -->
         {#if wallpaperMode === "transparent"}
         <div class="slider-row">
           <div class="slider-label">
@@ -586,6 +590,7 @@
                  bind:value={wallpaperOpacity} on:input={applyOpacity} class="wallpaper-slider">
         </div>
         {/if}
+        <!-- 背景模糊度：透明模式与全屏沉浸(hero)均生效（hero 写斜坡封顶 --hero-wallpaper-blur-max） -->
         <div class="slider-row">
           <div class="slider-label">
             <span>{t("display.wallpaperBlur", "背景模糊度")}</span>
@@ -610,7 +615,7 @@
       {#if hasEffectsContent}
         <div class="section-title mb-3">
           {t("display.effectsSettings", "特效设置")}
-          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular w-7 h-7 rounded-md active:scale-90 will-change-transform"
+          <button aria-label={t("theme.resetDefault", "Reset to Default")} class="btn-regular relative before:absolute before:-inset-2 before:rounded-md before:content-[''] w-7 h-7 rounded-md active:scale-90 will-change-transform"
                   class:opacity-0={!dirtySakura} class:pointer-events-none={!dirtySakura} on:click={resetSakuraBtn}>
             <div class="text-(--btn-content)">
               <div icon="fa6-solid:arrow-rotate-left" class="icon-[fa6-solid--arrow-rotate-left] text-[0.875rem]"></div>
@@ -874,6 +879,10 @@
 
   /* 透明设置滑块：样式同主题色相滑块（1.5rem 高轨道 + 小圆角直角 + 白色矩形滑块），
   轨道用比开关行开启态背景再深一档的按钮色（btn-regular-bg-active） */
+  #display-setting input[type="range"] {
+    /* 拖动滑杆时不触发页面滚动/文本选择（X20） */
+    touch-action: none;
+  }
   #display-setting input[type="range"].wallpaper-slider {
     -webkit-appearance: none;
     appearance: none;

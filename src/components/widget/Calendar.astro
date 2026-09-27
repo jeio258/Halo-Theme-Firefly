@@ -38,7 +38,7 @@ const calendarDataScript = `<script type="application/json" id="calendar-post-da
           id="prev-month-btn"
           type="button"
           aria-label="Previous Month"
-          class="btn-plain flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
+          class="btn-plain relative before:absolute before:-inset-2 before:rounded-lg before:content-[''] flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
         >
           <span class="icon-[material-symbols--chevron-left-rounded] text-sm"
           ></span>
@@ -53,7 +53,7 @@ const calendarDataScript = `<script type="application/json" id="calendar-post-da
             id="reset-month-btn"
             type="button"
             aria-label="Back to Today"
-            class="btn-plain flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
+            class="btn-plain relative before:absolute before:-inset-2 before:rounded-lg before:content-[''] flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
           >
             <span class="icon-[mdi--reload] text-sm"></span>
           </button>
@@ -61,7 +61,7 @@ const calendarDataScript = `<script type="application/json" id="calendar-post-da
             id="next-month-btn"
             type="button"
             aria-label="Next Month"
-            class="btn-plain flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
+            class="btn-plain relative before:absolute before:-inset-2 before:rounded-lg before:content-[''] flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-(--btn-plain-bg-hover)"
           >
             <span class="icon-[material-symbols--chevron-right-rounded] text-sm"
             ></span>

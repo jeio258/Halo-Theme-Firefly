@@ -57,7 +57,7 @@ const htmlContentClass = `${contentClass} overflow-y-auto overflow-x-hidden`;
       <button
         th:if="${theme.config?.sidebar?.announcement?.closable != false}"
         type="button"
-        class="announcement-close-btn btn-regular group rounded-lg h-8 w-8 text-sm transition-all active:scale-95"
+        class="announcement-close-btn btn-regular group relative before:absolute before:-inset-2 before:content-[''] rounded-lg h-8 w-8 text-sm transition-all active:scale-95"
         th:attr="aria-label=#{widget.announcement.closeLabel}"
         aria-label="关闭公告"
       >

@@ -1,5 +1,11 @@
 @reference "./global.css";
 
+/* 触屏点击灰块与卡片 hover 动效冲突（X20）：iOS/Android 私有属性，
+   tap-highlight 非标准继承，用通配选择器保证覆盖交互元素 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 @layer components {
   .card-base {
     @apply overflow-hidden rounded-(--radius-large) bg-(--card-bg) transition;
@@ -26,10 +32,6 @@
     #navbar-card {
     border-color: transparent !important;
     box-shadow: none !important;
-  }
-
-  .expand-animation {
-    @apply relative z-0 before:absolute before:inset-0 before:-z-10 before:scale-[0.85] before:rounded-[inherit] before:transition before:ease-out hover:before:scale-100 hover:before:bg-(--btn-plain-bg-hover) active:bg-transparent active:before:bg-(--btn-plain-bg-active);
   }
 
   .link {
@@ -398,24 +400,32 @@
     );
   }
 
-  /* 全屏壁纸参数（对齐 Firefly）：
-     背景模糊：--fullscreen-wallpaper-blur 由 fullscreen-hero.js 滚动斜坡驱动
-     （首页 0→max，max = 面板「背景模糊度」值）；scale 裁掉模糊边缘。
-     壁纸本身恒不透明（Firefly 全屏无壁纸透明度滑块），磨砂感来自下方卡片半透明 */
+  /* 全屏 hero 壁纸参数（onlynn 运动模型 1:1）：
+     首页：--hero-wallpaper-blur 由 fullscreen-hero.js 滚动斜坡驱动（0→heroBlurMax，
+     0.6 视口高到顶，2px 量化）；标题 #banner-overlay 只淡出（--hero-title-opacity）不位移；
+     非首页：CSS 固定 --hero-inner-blur（onlynn 原版 8px，body th:style 注入）；
+     壁纸本身恒不透明，模糊由 hero 变量承担，背景模糊度设置仅作用于透明模式 */
+  html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"] #banner,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    #banner
-    img,
+    #banner-mobile {
+    filter: blur(var(--hero-wallpaper-blur, 0px));
+    will-change: filter;
+  }
+
+  /* 非首页沉浸：固定内嵌模糊（覆盖首页斜坡变量，onlynn 原版 8px） */
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    #banner-mobile
-    img,
+    body:not(.is-home)
+    #banner,
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    #banner
-    video,
+    body:not(.is-home)
+    #banner-mobile {
+    filter: blur(var(--hero-inner-blur, 8px));
+  }
+
+  /* 标题纯淡出（onlynn：无 translateY 视差，壁纸 fixed 钉屏、标题原地消失） */
   html[data-banner-display="fullscreen"][data-fullscreen-layout="hero"]
-    #banner-mobile
-    video {
-    filter: blur(var(--fullscreen-wallpaper-blur, 0px));
-    transform: scale(1.06);
+    #banner-overlay {
+    opacity: var(--hero-title-opacity, 1);
   }
 
   /* 全屏 hero 布局不需要水波纹（对齐 Firefly hero：fullscreen 下波形均
@@ -814,19 +824,6 @@
     right: 0;
     height: 1.25rem;
     background: transparent;
-  }
-
-  .link-underline {
-    @apply underline decoration-2 decoration-dashed underline-offset-4 transition;
-    text-decoration-color: var(--link-underline);
-  }
-
-  .link-underline:hover {
-    text-decoration-color: var(--link-hover);
-  }
-
-  .link-underline:active {
-    text-decoration-color: var(--link-active);
   }
 
   /* 高级材质开启：导航栏模糊（同 submenu-panel / floating-btn，由
