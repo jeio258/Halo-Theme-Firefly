@@ -132,10 +132,6 @@ function enterImmersiveReading() {
   setupImmersiveTOC();
 
   window.scrollTo({ top: 0, behavior: "instant" });
-
-  document.dispatchEvent(
-    new CustomEvent("immersiveReadingChange", { detail: { on: true } }),
-  );
 }
 
 function exitImmersiveReading() {
@@ -160,10 +156,6 @@ function exitImmersiveReading() {
   updateImmersiveReadingVisibility();
 
   window.scrollTo({ top: state.prevScroll || 0, behavior: "instant" });
-
-  document.dispatchEvent(
-    new CustomEvent("immersiveReadingChange", { detail: { on: false } }),
-  );
 }
 
 function toggleImmersiveReading() {
@@ -214,9 +206,8 @@ function initImmersiveReading() {
   if (!w.__immersiveReadingInit) {
     w.__immersiveReadingInit = true;
 
-    // 按钮点击：直接绑定（按钮在 Swup 容器外常驻）
+    // 沉浸开关在 Swup 容器外常驻（BackToTop.astro），仅首载绑定
     state.btn?.addEventListener("click", toggleImmersiveReading);
-    state.tocBtn?.addEventListener("click", toggleImmersiveTOC);
 
     // 视口变化：离开桌面端时隐藏按钮并退出沉浸态
     window.addEventListener("resize", updateImmersiveReadingVisibility);
@@ -226,6 +217,10 @@ function initImmersiveReading() {
       if (e.key === "Escape") exitImmersiveReading();
     });
   }
+
+  // TOC 开关在 Swup 容器内（post.astro → ImmersiveTOC），换页后是新元素；
+  // 本脚本随换页重执行，每次绑定的都是新元素，无叠加
+  state.tocBtn?.addEventListener("click", toggleImmersiveTOC);
 }
 
 // 入口：页面加载 + Swup 换页后重绑定（SwupScriptsPlugin 会重执行本脚本，

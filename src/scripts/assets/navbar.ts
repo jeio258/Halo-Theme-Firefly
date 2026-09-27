@@ -246,6 +246,10 @@ if (!window.__navbarPanelToggleBound) {
   if (!window.matchMedia("(pointer: coarse)").matches) return;
   if (window.matchMedia("(max-width: 1023px)").matches) return;
 
+  // 守卫须在 matchMedia 之后：竖屏首载不设标志，换页转横屏后仍可补绑
+  if (window.__navbarTouchMenuBound) return;
+  window.__navbarTouchMenuBound = true;
+
   function closeAll() {
     document.querySelectorAll(".group.submenu-open").forEach(function (g) {
       g.classList.remove("submenu-open");
