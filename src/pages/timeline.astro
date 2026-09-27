@@ -356,7 +356,7 @@ import PageHeader from "../components/control/PageHeader.astro";
       totalPages=${not hasFilter and pageSize > 0 ? (totalSize + pageSize - 1) / pageSize : 1},
       rawPage=${param.page != null and param.page.length > 0 and param.page[0] matches '\d+' ? #conversions.convert(param.page[0], 'java.lang.Integer') : 1},
       curPage=${rawPage > totalPages ? totalPages : (rawPage < 1 ? 1 : rawPage)},
-      sep=${not #lists.isEmpty(param.type) ? '?type=' + param.type[0] + '&' : '?'},
+      sep=${not #lists.isEmpty(param.type) ? '?type=' + #uris.escapePathSegment(param.type[0]) + '&' : '?'},
       windowStart=${curPage le 3 ? 1 : (curPage ge totalPages - 2 ? (totalPages - 4 gt 1 ? totalPages - 4 : 1) : curPage - 2)},
       windowEnd=${curPage le 3 ? (totalPages lt 5 ? totalPages : 5) : (curPage ge totalPages - 2 ? totalPages : curPage + 2)}"
     th:remove="tag"
@@ -368,8 +368,9 @@ import PageHeader from "../components/control/PageHeader.astro";
       aria-label="Pagination"
     >
       <a
-        th:href="${curPage gt 1 ? singlePage.status.permalink + sep + 'page=' + (curPage - 1) : ''}"
+        th:href="${curPage gt 1 ? singlePage.status.permalink + sep + 'page=' + (curPage - 1) : null}"
         th:classappend="${curPage gt 1 ? '' : ' disabled'}"
+        th:aria-disabled="${curPage gt 1 ? null : 'true'}"
         th:aria-label="#{pagination.previous}"
         class="btn-card h-11 w-11 overflow-hidden rounded-lg text-(--primary)"
       >
@@ -433,8 +434,9 @@ import PageHeader from "../components/control/PageHeader.astro";
           th:text="${totalPages}"></a>
       </div>
       <a
-        th:href="${curPage lt totalPages ? singlePage.status.permalink + sep + 'page=' + (curPage + 1) : ''}"
+        th:href="${curPage lt totalPages ? singlePage.status.permalink + sep + 'page=' + (curPage + 1) : null}"
         th:classappend="${curPage lt totalPages ? '' : ' disabled'}"
+        th:aria-disabled="${curPage lt totalPages ? null : 'true'}"
         th:aria-label="#{pagination.next}"
         class="btn-card h-11 w-11 overflow-hidden rounded-lg text-(--primary)"
       >

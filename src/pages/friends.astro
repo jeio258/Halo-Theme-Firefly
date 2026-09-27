@@ -140,7 +140,7 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
                         class="flex items-center gap-2 min-w-0 friends-item-header"
                       >
                         <a
-                          href="#"
+                          th:href="${not #strings.isEmpty(item.url) and (#strings.startsWith(item.url, 'http://') or #strings.startsWith(item.url, 'https://')) ? item.url : null}"
                           class="friend-author truncate text-[15px] font-semibold text-(--primary) transition hover:text-(--primary)"
                           th:attr="data-site=${item.url}"
                         >
