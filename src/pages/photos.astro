@@ -178,6 +178,16 @@ import "../styles/photos-gallery-lightbox.css";
       </div>
     </div>
 
+    <!-- X11：无 hover 能力的触屏设备上详情按钮常显（hover 门控在触屏上
+       需两次点击才可达）；触屏笔记本（hover: hover）保持悬停显隐 -->
+    <style is:global>
+      @media (hover: none) {
+        .photo-detail-link {
+          opacity: 1;
+        }
+      }
+    </style>
+
     <div
       th:if="${#lists.isEmpty(photos.items)}"
       class="py-16 text-center text-50"

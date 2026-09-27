@@ -188,8 +188,11 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
         }
       }
 
-      // 详细页内点击 #comment：阻止默认行为，统一用 scrollToComment
+      // 详细页内点击 #comment：阻止默认行为，统一用 scrollToComment。
+      // data-no-swup 让 Swup 跳过接管（4.9.2 不检查 defaultPrevented，
+      // 仅 preventDefault 会与 Swup 的 link:anchor 滚动形成双滚竞态）
       document.querySelectorAll('a[href="#comment"]').forEach((a) => {
+        a.setAttribute("data-no-swup", "");
         a.addEventListener("click", (e) => {
           e.preventDefault();
           scrollToComment();
