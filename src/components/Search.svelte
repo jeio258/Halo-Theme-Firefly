@@ -162,7 +162,7 @@
     aria-label={t("search.placeholder", "搜索")}
     bind:value={keywordDesktop}
     onfocus={() => search(keywordDesktop, true)}
-    class="h-full w-40 bg-transparent pl-10 text-sm text-black/50 outline-0 transition-all active:w-60 focus:w-60 dark:text-white/50"
+    class="h-full w-40 bg-transparent pl-10 text-[16px] text-black/50 outline-0 transition-all active:w-60 focus:w-60 dark:text-white/50"
   />
 </div>
 
@@ -199,11 +199,11 @@
       placeholder={t("search.placeholder", "搜索")}
       aria-label={t("search.placeholder", "搜索")}
       bind:value={keywordMobile}
-      class="absolute inset-0 bg-transparent pl-10 text-sm text-black/50 outline-0 dark:text-white/50"
+      class="absolute inset-0 bg-transparent pl-10 text-[16px] text-black/50 outline-0 dark:text-white/50"
     />
   </div>
 
-  <div class="overflow-y-auto" style="max-height: calc(100vh - 132px)">
+  <div class="overflow-y-auto overscroll-contain" style="max-height: calc(100vh - 132px)">
     {#if isSearching}
       <!-- 状态消息是真实内容而非装饰，用更高对比度的 text-50 -->
       <div class="px-3 py-3 text-sm text-50">{t("search.loading", "搜索中...")}</div>

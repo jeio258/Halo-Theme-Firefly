@@ -266,7 +266,8 @@
   background: color-mix(in oklab, var(--primary) 4%, transparent);
   color: var(--deep-text, #333);
   padding: 0.625rem 0.875rem;
-  font-size: 0.8125rem;
+  /* 16px 硬值：rem 会随移动端根字号缩到 <16px 触发 iOS 聚焦缩放 */
+  font-size: 16px;
   line-height: 1.5;
   outline: none;
   font-family: inherit;

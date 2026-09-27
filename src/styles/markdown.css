@@ -12,6 +12,16 @@
 .custom-md {
   --tw-prose-links: var(--primary);
   --tw-prose-invert-links: var(--primary);
+  /* anywhere：长 URL/长单词断行，防撑破移动端视口 */
+  overflow-wrap: anywhere;
+}
+
+/* X19：移动端根字号 14px 使正文 rem 值缩至 ~14px，阅读场景单独提至 15px
+   （桌面 prose 默认 1rem=16px 不动；全站根字号调整影响面大，不在本轮） */
+@media (max-width: 1023px) {
+  .custom-md {
+    font-size: 15px;
+  }
 }
 
 .custom-md a:not(.no-styling) {
