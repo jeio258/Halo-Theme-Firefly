@@ -157,6 +157,9 @@ var t =
     document.body.appendChild(card);
 
     function close() {
+      // 所有关闭路径统一移除 ESC 监听（原仅 ESC 路径移除，
+      // backdrop/关闭钮路径泄漏，反复开关累积监听）
+      document.removeEventListener("keydown", escHandler);
       backdrop.style.transition = "opacity 0.15s ease";
       backdrop.style.opacity = "0";
       card.style.transition = "opacity 0.15s ease, transform 0.15s ease";
@@ -173,7 +176,6 @@ var t =
     var escHandler = function (e: KeyboardEvent) {
       if (e.key === "Escape") {
         close();
-        document.removeEventListener("keydown", escHandler);
       }
     };
     document.addEventListener("keydown", escHandler);

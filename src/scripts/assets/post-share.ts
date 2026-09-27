@@ -361,6 +361,9 @@ var t =
 
     // ---- 关闭函数 ----
     function close() {
+      // 所有关闭路径统一移除 ESC 监听（原仅 ESC 路径移除，
+      // backdrop/关闭钮路径泄漏，反复开关累积监听）
+      document.removeEventListener("keydown", escHandler);
       backdrop.style.transition = "opacity 0.15s ease";
       backdrop.style.opacity = "0";
       card.style.transition = "opacity 0.15s ease, transform 0.15s ease";
@@ -431,11 +434,10 @@ var t =
       }
     });
 
-    // ESC 关闭
+    // ESC 关闭（移除由 close 统一处理）
     var escHandler = function (e) {
       if (e.key === "Escape") {
         close();
-        document.removeEventListener("keydown", escHandler);
       }
     };
     document.addEventListener("keydown", escHandler);
@@ -996,12 +998,17 @@ var t =
 
   // ==================== 初始化 ====================
 
+  // 重试上限：分享按钮被配置隐藏时停止轮询（对齐 post-reward RETRY_LIMIT），
+  // 否则 setTimeout 链在换页离开后仍每 500ms 空转
+  var RETRY_LIMIT = 10;
+  var retryCount = 0;
+
   function safeInit() {
     var btn = document.getElementById("post-share-btn");
     if (btn) {
       btn.removeEventListener("click", generateShareImage);
       btn.addEventListener("click", generateShareImage);
-    } else {
+    } else if (retryCount++ < RETRY_LIMIT) {
       setTimeout(safeInit, 500);
     }
   }
