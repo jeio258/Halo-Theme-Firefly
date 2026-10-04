@@ -627,7 +627,7 @@ export interface SidebarSiteStats {
 }
 
 export interface SidebarWeather {
-  /** 腾讯位置服务 Key：仅供欢迎弹窗 IP 定位复用（天气组件已改免 Key 的 open-meteo 链路，不再依赖） */
+  /** 腾讯位置服务 Key：可选。填写后天气组件优先走腾讯链路（更贴近国内天气口径），同时供欢迎弹窗 IP 定位复用；留空（默认）则天气走免 Key 的 open-meteo 链路 */
   tencent_key?: string;
   /** 时间天气组件城市名（如「芜湖」），留空 = 按访客 IP 自动定位 */
   city?: string;

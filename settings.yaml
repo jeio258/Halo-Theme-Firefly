@@ -1464,7 +1464,7 @@ spec:
         - $formkit: group
           name: weather
           label: 时间天气小组件
-          help: "把「时间天气」加入任一侧边栏列表即显示；天气数据来自免 Key 的 open-meteo，下方腾讯 Key 仅供欢迎弹窗的 IP 定位复用"
+          help: "把「时间天气」加入任一侧边栏列表即显示；天气数据默认走免 Key 的 open-meteo 链路，填写下方腾讯 Key 后优先走腾讯链路（更贴近国内天气口径，失败自动回退免 Key），该 Key 同时供欢迎弹窗的 IP 定位复用"
           value:
             tencent_key: ""
             city: ""
@@ -1474,12 +1474,12 @@ spec:
               name: tencent_key
               label: 腾讯位置服务 Key
               value: ""
-              help: "仅供欢迎弹窗的 IP 定位使用（天气组件已改用免 Key 的 open-meteo 链路，不再需要 Key）；WebService API 类型，免费注册：https://lbs.qq.com/dev/console/application/mine"
+              help: "可选。填写后天气组件优先走腾讯链路（更贴近国内天气口径），同时供欢迎弹窗的 IP 定位复用；留空（默认）则天气走免 Key 的 open-meteo 链路。WebService API 类型，免费注册：https://lbs.qq.com/dev/console/application/mine；请对控制台【账户额度】下的「天气:天气」和「IP定位」分别进行配额分配，确保调用量/并发量满足网站需求"
             - $formkit: text
               name: city
               label: 城市
               value: ""
-              help: "组件显示的城市名，如 芜湖、上海、北京；留空则按访客 IP 自动定位当前城市"
+              help: "组件显示的城市名，如 芜湖、上海、北京；留空则按访客 IP 自动定位当前城市。填写纯数字（行政区划编码，如 110000）时，腾讯链路直接以其作为城市编码查询"
             - $formkit: switch
               name: gps
               label: 精确定位按钮

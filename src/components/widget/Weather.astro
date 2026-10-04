@@ -1,11 +1,13 @@
 ---
 // 时间天气小组件（对标 moesora「时间天气」）：天气大字置顶（图标 + 大温度 / 状况 + 城市）
 // + 底部虚线时间行（秒级时钟 HH:MM:SS + M月D日 周X），可选「使用精确定位」GPS 按钮。
-// - 天气数据：免 Key 的 open-meteo 链路（城市名 geocode → 经纬度 → current 实况）；
-//   城市留空时按访客 IP 定位（api.ip.sb → ipwho.is 双源兜底），GPS 按钮走浏览器定位 +
+// - 天气数据双链路：① tencent_key 已配置 → 腾讯链路（JSONP：IP 定位→adcode→实况，
+//   更贴近国内天气口径；失败/限流自动回退免 Key 兜底）；② tencent_key 留空（默认）→
+//   免 Key 的 open-meteo 链路（城市名 geocode → 经纬度 → current 实况），城市留空时按
+//   访客 IP 定位（api.ip.sb → ipwho.is 双源兜底），GPS 按钮走浏览器定位 +
 //   bigdatacloud 反地理编码（localStorage 7 天缓存避免重复弹窗）
 // - 后台配置（sidebar.weather 分组）：city 城市名（留空=IP 定位）、gps 精确定位按钮开关；
-//   tencent_key 仅供欢迎弹窗 IP 定位复用，天气组件不再依赖
+//   tencent_key 同时供欢迎弹窗 IP 定位复用（共享 weather_ip_cache）
 // - 星期/月份文案复用 calendar.* 词条（与站点日历单一来源）；实例作用域取法同其他小组件，
 //   双实例各自一份时钟（card.__wxTimer 去重，元素离 DOM 自停）
 import WidgetLayout from "./WidgetLayout.astro";
@@ -40,7 +42,8 @@ const className = Astro.props.class;
 
   <div
     id="weather-content"
-    th:attr="data-city=${theme.config?.sidebar?.weather?.city}"
+    th:attr="data-city=${theme.config?.sidebar?.weather?.city},
+      data-tencent-key=${theme.config?.sidebar?.weather?.tencent_key}"
     class="wx-card px-3 py-1"
   >
     <!-- 天气主区：大图标 + 大温度 / 状况 + 城市 -->
@@ -532,22 +535,195 @@ const className = Astro.props.class;
       });
     }
 
-    // ---- 主流程：缓存 → 城市名 → GPS 缓存 → IP 定位 ----
+    // ---- 免 Key 链路（默认）：城市名 geocode → 实况 / GPS 缓存 / IP 定位 ----
+    function openMeteoChain(city) {
+      if (city) {
+        geocodeCity(city);
+        return;
+      }
+      var gc = getGpsCache();
+      if (gc) {
+        fetchWx(
+          gc.lat,
+          gc.lon,
+          gc.name || t("widget.weather.currentLoc", "当前位置"),
+        );
+        return;
+      }
+      ipGeo();
+    }
+
+    // ---- 腾讯链路（tencent_key 已配置时优先；失败/限流一律回退免 Key 兜底，保证天气始终显示）----
+    var API_BASE = "https://apis.map.qq.com/ws";
+    var IP_CACHE_KEY = "weather_ip_cache"; // 与欢迎弹窗共享：4 小时 TTL
+    var IP_CACHE_TTL = 4 * 60 * 60 * 1000;
+
+    var _cbIdx = 0;
+    function jsonp(url) {
+      return new Promise(function (resolve, reject) {
+        var cbName = "__ethereal_tencent_cb_" + ++_cbIdx;
+        var sep = url.indexOf("?") === -1 ? "?" : "&";
+        var script = document.createElement("script");
+        script.src = url + sep + "callback=" + cbName;
+        script.onerror = function () {
+          reject(new Error("JSONP request failed"));
+          cleanup();
+        };
+        var timer = setTimeout(function () {
+          reject(new Error("JSONP timeout"));
+          cleanup();
+        }, 10000);
+        function cleanup() {
+          clearTimeout(timer);
+          try {
+            delete window[cbName];
+          } catch (e) {
+            window[cbName] = undefined;
+          }
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+        window[cbName] = function (data) {
+          resolve(data);
+          cleanup();
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function getCachedAdcode() {
+      try {
+        var raw = sessionStorage.getItem(IP_CACHE_KEY);
+        if (!raw) return null;
+        var d = JSON.parse(raw);
+        if (d.adcode && Date.now() - d.t < IP_CACHE_TTL) return d.adcode;
+      } catch (e) {}
+      return null;
+    }
+    function setCachedAdcode(adcode, adInfo) {
+      try {
+        sessionStorage.setItem(
+          IP_CACHE_KEY,
+          JSON.stringify({
+            adcode: adcode,
+            ad_info: adInfo || null,
+            t: Date.now(),
+          }),
+        );
+      } catch (e) {}
+    }
+
+    // 腾讯中文天气描述 → WMO 码（复用统一 render/i18n/图标口径）
+    function tencentCondToWmo(w) {
+      w = String(w || "").replace(/\s+/g, "");
+      if (/雷|冰雹/.test(w)) return 95;
+      if (/雨夹雪/.test(w)) return 71;
+      if (/阵雨/.test(w)) return 80;
+      if (/冻雨|毛毛雨|细雨/.test(w)) return 51;
+      if (/雪/.test(w)) {
+        if (/暴|大到|中到/.test(w)) return 75;
+        if (/大|中/.test(w)) return 73;
+        return 71;
+      }
+      if (/雨/.test(w)) {
+        if (/特大|暴雨|大到/.test(w)) return 65;
+        if (/大雨/.test(w)) return 65;
+        if (/中雨/.test(w)) return 63;
+        return 61;
+      }
+      if (/沙尘|浮尘|扬沙|霾|雾/.test(w)) return 45;
+      if (/晴/.test(w) && /间|云/.test(w)) return 1;
+      if (/多云/.test(w)) return 2;
+      if (/阴/.test(w)) return 3;
+      if (/晴/.test(w)) return 0;
+      return 2;
+    }
+
+    function renderTencent(rt) {
+      var info = rt.infos || {};
+      var night = new Date().getHours() >= 18 || new Date().getHours() < 6;
+      var d = {
+        name: rt.district || rt.city || rt.province || "",
+        code: tencentCondToWmo(info.weather),
+        temp: parseFloat(info.temperature),
+        wind: 0,
+        hum: parseFloat(info.humidity),
+        day: !night,
+      };
+      setCache(d);
+      render(d);
+      if (elAux) {
+        var windText =
+          ((info.wind_direction || "") + (info.wind_power_v2 || "")).trim() ||
+          t("widget.weather.wind", "风");
+        elAux.textContent =
+          windText +
+          " · " +
+          t("widget.weather.humidity", "湿度") +
+          " " +
+          Math.round(parseFloat(info.humidity) || 0) +
+          "%";
+      }
+    }
+
+    function tencentChain(city, key) {
+      function fetchTencentWeather(adcode) {
+        jsonp(
+          API_BASE +
+            "/weather/v1/?key=" +
+            key +
+            "&adcode=" +
+            adcode +
+            "&type=now&output=jsonp",
+        )
+          .then(function (data) {
+            if (data && data.status === 0 && data.result)
+              renderTencent(data.result);
+            else openMeteoChain(city);
+          })
+          .catch(function () {
+            openMeteoChain(city);
+          });
+      }
+      if (/^\d+$/.test(city)) {
+        fetchTencentWeather(city);
+        return;
+      }
+      var cachedAdcode = getCachedAdcode();
+      if (cachedAdcode) {
+        fetchTencentWeather(cachedAdcode);
+        return;
+      }
+      jsonp(API_BASE + "/location/v1/ip?key=" + key + "&output=jsonp")
+        .then(function (data) {
+          if (
+            data &&
+            data.status === 0 &&
+            data.result &&
+            data.result.ad_info &&
+            data.result.ad_info.adcode
+          ) {
+            var code = String(data.result.ad_info.adcode);
+            setCachedAdcode(code, data.result.ad_info);
+            fetchTencentWeather(code);
+          } else {
+            openMeteoChain(city);
+          }
+        })
+        .catch(function () {
+          openMeteoChain(city);
+        });
+    }
+
+    // ---- 主流程：缓存 → 腾讯链路（有 Key）→ 免 Key 链路（默认）----
     var city = (card.getAttribute("data-city") || "").trim();
+    var tencentKey = (card.getAttribute("data-tencent-key") || "").trim();
     var cached = getCache();
     if (cached) {
       render(cached);
-    } else if (city) {
-      geocodeCity(city);
-    } else if (getGpsCache()) {
-      var gc = getGpsCache();
-      fetchWx(
-        gc.lat,
-        gc.lon,
-        gc.name || t("widget.weather.currentLoc", "当前位置"),
-      );
+    } else if (tencentKey) {
+      tencentChain(city, tencentKey);
     } else {
-      ipGeo();
+      openMeteoChain(city);
     }
   })();
 </script>
