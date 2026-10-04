@@ -627,14 +627,22 @@ export interface SidebarSiteStats {
 }
 
 export interface SidebarWeather {
+  /** 腾讯位置服务 Key：仅供欢迎弹窗 IP 定位复用（天气组件已改免 Key 的 open-meteo 链路，不再依赖） */
   tencent_key?: string;
-  default_city?: string;
+  /** 时间天气组件城市名（如「芜湖」），留空 = 按访客 IP 自动定位 */
+  city?: string;
+  /** 显示「使用精确定位」按钮（仅城市留空时生效），缺省关闭 */
+  gps?: boolean;
 }
 
 export interface SidebarHitokoto {
   hitokoto_api?: string;
   fallback_text?: string;
   fallback_source?: string;
+  /** 自动轮转开关，缺省关闭 */
+  auto_rotate?: boolean;
+  /** 轮转间隔秒数（10–600，缺省 30），仅 auto_rotate 开启时生效 */
+  rotate_interval?: number;
 }
 
 export interface SidebarMusic {

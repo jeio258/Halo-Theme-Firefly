@@ -1040,7 +1040,7 @@ spec:
                       value: hitokoto
                     - label: 站点统计
                       value: site-stats
-                    - label: 天气
+                    - label: 时间天气
                       value: weather
                     - label: 最近日程
                       value: schedule
@@ -1103,7 +1103,7 @@ spec:
                       value: hitokoto
                     - label: 站点统计
                       value: site-stats
-                    - label: 天气
+                    - label: 时间天气
                       value: weather
                     - label: 最近日程
                       value: schedule
@@ -1164,7 +1164,7 @@ spec:
                       value: hitokoto
                     - label: 站点统计
                       value: site-stats
-                    - label: 天气
+                    - label: 时间天气
                       value: weather
                     - label: 最近日程
                       value: schedule
@@ -1463,22 +1463,28 @@ spec:
               help: "用于计算运行天数，留空则不显示运行天数"
         - $formkit: group
           name: weather
-          label: 天气小组件
-          help: "把「天气」加入任一侧边栏列表即显示；此处的 Key 同时被欢迎弹窗的 IP 定位复用"
+          label: 时间天气小组件
+          help: "把「时间天气」加入任一侧边栏列表即显示；天气数据来自免 Key 的 open-meteo，下方腾讯 Key 仅供欢迎弹窗的 IP 定位复用"
           value:
             tencent_key: ""
-            default_city: "110000"
+            city: ""
+            gps: false
           children:
             - $formkit: text
               name: tencent_key
               label: 腾讯位置服务 Key
               value: ""
-              help: "WebService API 类型，免费注册：https://lbs.qq.com/dev/console/application/mine；Key 会在前端页面源码中明文出现，建议在腾讯位置服务控制台配置域名白名单。请对控制台【账户额度】下的“天气:天气”和“IP定位”分别进行配额分配，确保“调用量分配”和“并发量分配”满足网站需求"
+              help: "仅供欢迎弹窗的 IP 定位使用（天气组件已改用免 Key 的 open-meteo 链路，不再需要 Key）；WebService API 类型，免费注册：https://lbs.qq.com/dev/console/application/mine"
             - $formkit: text
-              name: default_city
-              label: 默认城市编码
-              value: "110000"
-              help: "IP定位失败时的回退城市，填写行政区划编码如 110000（北京）或 310000（上海）"
+              name: city
+              label: 城市
+              value: ""
+              help: "组件显示的城市名，如 芜湖、上海、北京；留空则按访客 IP 自动定位当前城市"
+            - $formkit: switch
+              name: gps
+              label: 精确定位按钮
+              value: false
+              help: "开启后，城市留空时组件显示「使用精确定位」按钮，访客授权后用浏览器定位获取更准确位置（仅城市留空时生效）。默认关闭"
         - $formkit: group
           name: hitokoto
           label: 一言小组件
@@ -1487,6 +1493,8 @@ spec:
             hitokoto_api: ""
             fallback_text: "世界很大，开心第一。"
             fallback_source: "楠南NanNan"
+            auto_rotate: false
+            rotate_interval: 30
           children:
             - $formkit: url
               name: hitokoto_api
@@ -1503,6 +1511,18 @@ spec:
               label: 获取失败来源
               value: "楠南NanNan"
               help: "一言获取失败时显示的作者或来源"
+            - $formkit: switch
+              name: auto_rotate
+              label: 自动轮转
+              value: false
+              help: "开启后无需手动点「换一句」，每隔「轮转间隔」自动取下一句；页面切到后台标签时暂停请求"
+            - $formkit: number
+              name: rotate_interval
+              label: 轮转间隔（秒）
+              min: 10
+              max: 600
+              value: 30
+              help: "自动轮转的间隔秒数，10–600，默认 30；仅「自动轮转」开启时生效，常显可随时调整"
         - $formkit: group
           name: music
           label: 音乐播放器小组件

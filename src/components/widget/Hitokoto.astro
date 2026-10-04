@@ -102,7 +102,9 @@ const className = Astro.props.class;
     id="hitokotoCard"
     th:attr="data-api=${theme.config?.sidebar?.hitokoto?.hitokoto_api},
       data-fallback-text=${theme.config?.sidebar?.hitokoto?.fallback_text},
-      data-fallback-source=${theme.config?.sidebar?.hitokoto?.fallback_source}"
+      data-fallback-source=${theme.config?.sidebar?.hitokoto?.fallback_source},
+      data-auto-rotate=${theme.config?.sidebar?.hitokoto?.auto_rotate},
+      data-rotate-interval=${theme.config?.sidebar?.hitokoto?.rotate_interval}"
   >
     <div class="hitokoto-main-row">
       <p
@@ -120,8 +122,7 @@ const className = Astro.props.class;
         th:title="#{widget.hitokoto.refresh}"
         th:aria-label="#{widget.hitokoto.refresh}"
       >
-        <span class="icon-[material-symbols--refresh-rounded] iconify-spin"
-        ></span>
+        <span class="icon-[material-symbols--refresh-rounded] iconify-spin"></span>
       </button>
     </div>
     <div class="hitokoto-author-row">
@@ -227,6 +228,19 @@ const className = Astro.props.class;
       if (!hitokotoBound) {
         hitokotoBound = true;
         refreshBtn.addEventListener("click", refresh);
+      }
+
+      // 自动轮转：后台 auto_rotate 开启后按 rotate_interval（秒，缺省 30）定时换句；
+      // 定时器挂 card 上（脚本被重执行时先去重防双表）；后台标签页跳过请求避免空转
+      var autoRotate = card.getAttribute("data-auto-rotate") === "true";
+      var intervalSec = parseInt(card.getAttribute("data-rotate-interval"), 10);
+      if (!intervalSec || intervalSec < 10) intervalSec = 30;
+      if (card.__hitokotoTimer) clearInterval(card.__hitokotoTimer);
+      if (autoRotate) {
+        card.__hitokotoTimer = setInterval(function () {
+          if (document.hidden) return;
+          refresh();
+        }, intervalSec * 1000);
       }
 
       // 优先使用缓存数据，无缓存时才请求
