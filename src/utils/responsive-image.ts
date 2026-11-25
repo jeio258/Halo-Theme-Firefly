@@ -41,10 +41,17 @@ function thumbSrcset(
   if (withOriginal) {
     candidates.push(urlToken + " + ' " + ORIGINAL_SRCSET_WIDTH + "w'");
   }
+  // 前置判定：thumbnail.gen 不可用时（如 Halo Pro 2.25 会把原 URL 原样返回），
+  // 各档会得到完全相同的地址——此时输出 srcset 不仅无用，还会让浏览器按描述符
+  // 误判分辨率。用「s 档 == 原 URL」作为不可用的判据，直接不输出该属性。
   return (
     "${#strings.isEmpty(" +
     urlToken +
-    ") ? null : " +
+    ") or thumbnail.gen(" +
+    urlToken +
+    ", 's') == " +
+    urlToken +
+    " ? null : " +
     candidates.join(" + ', ' + ") +
     "}"
   );
