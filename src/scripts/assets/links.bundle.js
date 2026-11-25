@@ -2,6 +2,12 @@
 // 由 requirements / collapse / copy / link-apply / random-visit / search 合并，各 IIFE 守卫独立保留；
 // link-apply 与 random-visit 的原 th:if 门控移除，改由内部守卫（元素不存在即不绑定/不执行）
 
+import {
+  lockPageScroll,
+  resetPageScrollLock,
+  unlockPageScroll,
+} from "../../utils/scroll-lock";
+
 // 渲染友链须知和免责申明列表
 (function () {
   function render() {
@@ -32,8 +38,7 @@
     render();
   }
 
-  // 换页后重新渲染由 SwupScriptsPlugin 重执行覆盖；
-  // 原 swup:contentReplaced 监听删除（v3 事件名从未触发）。
+  // 换页后重新渲染由 SwupScriptsPlugin 重执行覆盖。
 })();
 
 // 折叠面板交互（平滑展开/收起动画）
@@ -129,8 +134,7 @@
   }
 
   // Swup 页面切换后重新初始化
-  // 换页后重新初始化由 SwupScriptsPlugin 重执行覆盖；
-  // 原 swup:contentReplaced 监听删除（v3 事件名从未触发）。
+  // 换页后重新初始化由 SwupScriptsPlugin 重执行覆盖。
 })();
 
 // 复制功能
@@ -194,8 +198,7 @@
   }
 
   // Swup 页面切换后重新初始化
-  // 换页后重新绑定由 SwupScriptsPlugin 重执行覆盖；
-  // 原 swup:contentReplaced 监听删除（v3 事件名从未触发）。
+  // 换页后重新绑定由 SwupScriptsPlugin 重执行覆盖。
 })();
 
 // 申请友链 - 模态框交互 + REST API 提交
@@ -323,7 +326,7 @@
     modal.classList.remove("is-closing");
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    lockPageScroll();
     clearMessage();
     // 仅在首次打开时自动加载验证码，之后打开保留上次验证码不刷新
     if (!state.captchaLoaded) refreshCaptcha();
@@ -347,7 +350,7 @@
     closeTimer = setTimeout(function () {
       modal.classList.remove("is-open", "is-closing");
       modal.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
+      unlockPageScroll();
     }, 200);
     // 保留验证码与挑战 ID：再次打开时直接沿用，不重新请求；点击图片刷新才更新
   }
@@ -488,10 +491,9 @@
     });
 
     // 换页后重置状态：模态框挂载在 body 下、不随 Swup 容器替换。
-    // 用 @swup/astro 文档化的 astro:after-swap（每次换页后分发）替代原
-    // swup:contentReplaced 监听——那是 Swup v3 事件名，v4 分发 swup:{hook}，从未触发。
+    // 用 @swup/astro 文档化的 astro:after-swap（每次换页后分发）。
     document.addEventListener("astro:after-swap", function () {
-      document.body.style.overflow = "";
+      resetPageScrollLock();
       state.submitting = false;
       state.challengeId = null;
       // 页面切换后模态框 DOM 被重建（图片无 src），需重新加载验证码
@@ -642,7 +644,7 @@
       for (var c = 0; c < cards.length; c++) {
         var card = cards[c];
         // 命中范围 = 卡片全文（名称/描述/URL）+ 所属分组名
-        // （搜分组名可整组保留，与参考实现一致）
+        // （命中分组名则整组保留）
         var haystack = (
           (card.textContent || "") +
           " " +

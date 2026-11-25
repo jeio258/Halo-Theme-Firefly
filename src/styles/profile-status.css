@@ -178,13 +178,9 @@
   padding: 0.75rem 1rem 0.25rem;
 }
 
-/* 状态选项：标准网格卡片（一排 4 个，第二排自然左对齐），
-   UI 参考友链(links)页面的链接卡片：
-   - 形状用圆方形（rounded-xl），不用圆形
-   - 白底 + 主题色细描边（btn-card-outline 同款）
-   - 悬浮上移 + 主题色阴影（card-hover-lift，接入后台「卡片悬浮效果」开关）
-   - 点击内凹（active:scale-95），hover 内容变主题色
-   卡片撑满整列（不固定小尺寸、不居中），列间只剩均匀 gap，两侧无大片空白 */
+/* 状态选项：标准网格卡片（一排 4 个，第二排左对齐；卡片撑满整列，列间只剩均匀 gap）。
+   形状圆方形（rounded-xl）、白底 + 主题色细描边、悬浮上移 + 主题色阴影（接入「卡片悬浮
+   效果」开关）、点击内凹，hover 内容变主题色。 */
 .status-options {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -209,13 +205,13 @@
   color: var(--deep-text, #333);
   text-align: center;
   /* 必须包含 transform / box-shadow，否则 card-hover-lift 的上移与阴影会突变（生硬）；
-     缓动曲线与主题卡片悬浮保持一致 */
+     悬浮过渡与主题卡片统一取 --card-hover-duration，按压 scale 保持更快的 0.15s */
   transition:
-    background 0.2s,
-    border-color 0.2s,
-    color 0.2s,
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--card-hover-duration),
+    border-color var(--card-hover-duration),
+    color var(--card-hover-duration),
+    transform var(--card-hover-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow var(--card-hover-duration) cubic-bezier(0.4, 0, 0.2, 1),
     scale 0.15s ease;
   font-family: inherit;
 }

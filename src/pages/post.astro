@@ -2,10 +2,9 @@
 import PostMeta from "../components/PostMeta.astro";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import {
-  imageSuffixThWith,
-  CDN_SUFFIX_PATTERNS,
-  SUFFIX_ELIGIBLE_EXTENSIONS,
-} from "../utils/image-suffix";
+  postCoverSrcExpr,
+  postCoverSrcsetExpr,
+} from "../utils/responsive-image";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
 // ASSET_VERSION 由 astro.config.mjs 构建期从 theme.yaml 注入（vite.define），
@@ -20,18 +19,26 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
   showToc={true}
 >
   <Fragment slot="head">
-    <!-- og:title 由 Layout.astro 统一输出；此处仅保留文章特有 og 元数据 -->
-    <meta property="og:description" th:content="${post.status.excerpt}" />
+    <!-- og:title 由 Layout.astro 统一输出；此处仅保留文章特有 og 元数据与 canonical。
+         开关见「杂项设置 → SEO 设置」 -->
+    <link
+      rel="canonical"
+      th:href="@{${site.url + post.status.permalink}}"
+      th:if="${theme.config?.misc?.seo?.enable_metadata != false}"
+    />
+    <meta
+      property="og:description"
+      th:content="${post.status.excerpt}"
+      th:if="${theme.config?.misc?.seo?.enable_metadata != false}"
+    />
     <meta
       property="og:image"
-      th:if="${not #strings.isEmpty(post.spec.cover)}"
+      th:if="${not #strings.isEmpty(post.spec.cover) and theme.config?.misc?.seo?.enable_metadata != false}"
       th:content="${post.spec.cover}"
     />
   </Fragment>
 
-  <article
-    class="relative mb-4 flex w-full overflow-hidden rounded-(--radius-large)"
-  >
+  <article class="relative mb-4 flex w-full overflow-hidden rounded-(--radius-large)">
     <div
       id="post-container"
       class="card-base relative z-10 w-full px-6 pb-4 pt-6 md:px-9"
@@ -40,40 +47,39 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       <span
         id="post-excerpt-data"
         class="hidden"
-        th:attr="data-text=${post.status.excerpt}"></span>
+        th:attr="data-text=${post.status.excerpt}"
+      ></span>
       <div
         class="onload-animation mb-3 flex flex-row gap-5 text-black/50 transition dark:text-white/50"
         th:if="${post.stats != null}"
       >
         <div class="flex flex-row items-center">
-          <div
-            class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50"
-          >
-            <span class="icon-[material-symbols--visibility-outline-rounded]"
-            ></span>
+          <div class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50">
+            <span class="icon-[material-symbols--visibility-outline-rounded]"></span>
           </div>
-          <span class="text-sm" th:text="${post.stats.visit}">0</span>
+          <span class="text-sm" th:text="${post.stats.visit}">
+            0
+          </span>
         </div>
         <div class="flex flex-row items-center">
-          <div
-            class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50"
-          >
+          <div class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50">
             <span class="icon-[mdi--comment-text-outline]"></span>
           </div>
-          <span class="text-sm" th:text="${post.stats.comment}">0</span>
+          <span class="text-sm" th:text="${post.stats.comment}">
+            0
+          </span>
         </div>
         <!-- 点赞：跟随后台文章操作栏"启用点赞"开关 -->
         <div
           class="flex flex-row items-center"
           th:if="${theme.config?.post?.actionBar?.like == true}"
         >
-          <div
-            class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50"
-          >
-            <span class="icon-[material-symbols--favorite-outline-rounded]"
-            ></span>
+          <div class="mr-2 flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-black/50 transition dark:bg-white/10 dark:text-white/50">
+            <span class="icon-[material-symbols--favorite-outline-rounded]"></span>
           </div>
-          <span class="text-sm" th:text="${post.stats.upvote}">0</span>
+          <span class="text-sm" th:text="${post.stats.upvote}">
+            0
+          </span>
         </div>
       </div>
 
@@ -92,12 +98,13 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
           th:if="${not #strings.isEmpty(post.spec.cover) and theme.config?.post?.contentDisplay?.showCover != false}"
           id="post-cover"
           class="mb-5 overflow-hidden rounded-xl"
-          th:with={imageSuffixThWith("p?.article_image_width ?: 1200")}
         >
           <!-- aspect-ratio 预占空间避免 CLS：封面图加载前按 16/9 预留高度，
                max-h-112 保留原上限，两者结合不会发生布局跳动 -->
           <img
-            th:src="|${post.spec.cover}${suffix}|"
+            th:src={postCoverSrcExpr()}
+            th:srcset={postCoverSrcsetExpr()}
+            sizes="(min-width: 1024px) 1024px, 100vw"
             th:alt="${post.spec.title}"
             fetchpriority="high"
             decoding="async"
@@ -117,73 +124,40 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
             th:if="${theme.config?.post?.summary != null and theme.config?.post?.summary?.summary_title != null and !#strings.isEmpty(theme.config?.post?.summary?.summary_title)}"
           >
             <span class="icon-[mdi--text-box-outline] summary-icon"></span>
-            <span th:text="${theme.config?.post?.summary?.summary_title}"
-              >文章摘要</span
-            >
+            <span th:text="${theme.config?.post?.summary?.summary_title}">
+              文章摘要
+            </span>
           </div>
           <div class="summary-content">
-            <span id="summary-text" th:data-text="${post.status.excerpt}"
-            ></span><span
+            <span
+              id="summary-text"
+              th:data-text="${post.status.excerpt}"
+            ></span>
+            <span
               id="summary-caret"
               th:if="${theme.config?.post?.summary == null or theme.config?.post?.summary?.summaryEffect == null or theme.config?.post?.summary?.summaryEffect != 'drop'}"
-              class="summary-caret">|</span
+              class="summary-caret"
             >
+              |
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- provider = halo 或 none：直接渲染，Halo 内核自行处理内容图片 -->
+      <!-- 正文直接渲染，内容图片的响应式属性（srcset/sizes）由 Halo 2.22+ 自动注入 -->
       <div
-        th:if="${theme.config?.performance?.imageProcessing?.provider == 'halo' or theme.config?.performance?.imageProcessing?.provider == 'none'}"
         id="content"
         class="custom-md markdown-content onload-animation prose prose-base mb-6 max-w-none! dark:prose-invert!"
         th:classappend="| ${theme.config?.post?.contentDisplay?.content_size} ${theme.config?.post?.contentDisplay?.content_theme}|"
         th:utext="${post.content.content}"
-      >
-      </div>
-
-      <!-- provider = CDN：用 <template> 包裹避免浏览器预加载扫描器触发双重加载 -->
-      <template
-        th:if="${theme.config?.performance?.imageProcessing?.provider != 'halo' and theme.config?.performance?.imageProcessing?.provider != 'none'}"
-        id="content-template"
-      >
-        <div
-          id="content"
-          class="custom-md markdown-content onload-animation prose prose-base mb-6 max-w-none! dark:prose-invert!"
-          th:classappend="| ${theme.config?.post?.contentDisplay?.content_size} ${theme.config?.post?.contentDisplay?.content_theme}|"
-          th:utext="${post.content.content}"
-        >
-        </div>
-      </template>
-      <div
-        th:if="${theme.config?.performance?.imageProcessing?.provider != 'halo' and theme.config?.performance?.imageProcessing?.provider != 'none'}"
-        id="content-placeholder"
-        class="min-h-[30vh]"
-      >
-        <!-- 无 JS 降级：禁用脚本时直接渲染正文（图片不拼 CDN 参数，可用性优先）。
-             正常启用 JS 时 noscript 子树不产生 DOM 元素，processAndInsert 会用模板克隆整体
-             replaceWith 本占位符，因此 <template> 与 <noscript> 中重复的 id="content"
-             不会同时存在于最终 DOM，无 id 冲突（全库唯一查询在 fragment 作用域内）。
-             onload-animation 为纯 CSS 动画，禁用 JS 也能正常淡入。 -->
-        <noscript>
-          <div
-            id="content"
-            class="custom-md markdown-content onload-animation prose prose-base mb-6 max-w-none! dark:prose-invert!"
-            th:classappend="| ${theme.config?.post?.contentDisplay?.content_size} ${theme.config?.post?.contentDisplay?.content_theme}|"
-            th:utext="${post.content.content}"
-          >
-          </div>
-        </noscript>
-      </div>
+      ></div>
 
       <!-- 支持与分享卡片 -->
       <div
         th:if="${theme.config?.post?.actionBar?.enable != false}"
         class="onload-animation mb-6"
       >
-        <div
-          class="action-share-card relative overflow-hidden rounded-xl bg-(--license-block-bg) px-6 py-5 transition"
-        >
+        <div class="action-share-card relative overflow-hidden rounded-xl bg-(--license-block-bg) px-6 py-5 transition">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <!-- 左侧：心形点赞按钮 + 文案 -->
             <div class="flex flex-1 items-center gap-3 min-w-0 md:gap-4">
@@ -235,17 +209,24 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
                 <span class="icon-[tabler--share] mr-1.5 text-base"></span>
                 <span th:text="#{post.share}">分享</span>
               </button>
+              <!-- 收款码 / 文案 / 爱发电地址全部来自「打赏插件」Finder（rc），经 data-* 交给
+                   post-reward.ts（afdianPageUrl 未启用或未填写时是空串，脚本按空串隐藏入口）。
+                   插件停用（rewardFinder 为空）时整个按钮不渲染，避免点开是空弹窗。
+                   「打赏页面」跳转按钮仍读主题设置 actionBar.rewardSetting -->
               <button
                 id="post-reward-btn"
-                th:if="${theme.config?.post?.actionBar?.reward != false}"
+                th:if="${theme.config?.post?.actionBar?.reward != false and rewardFinder != null}"
+                th:with="rc=${rewardFinder?.getConfig()}"
+                th:data-wechat-qr="${rc?.wechatQr}"
+                th:data-alipay-qr="${rc?.alipayQr}"
+                th:data-reward-intro="${rc?.intro}"
+                th:data-afdian-url="${rc?.afdianPageUrl}"
                 type="button"
                 class="btn-regular group flex h-11 w-fit items-center justify-center rounded-xl px-4 text-sm font-bold active:scale-95"
                 aria-label="打赏"
                 th:aria-label="#{post.rewardTitle}"
               >
-                <span
-                  class="icon-[material-symbols--volunteer-activism-rounded] mr-1.5 text-base"
-                ></span>
+                <span class="icon-[material-symbols--volunteer-activism-rounded] mr-1.5 text-base"></span>
                 <span th:text="#{post.reward}">打赏</span>
               </button>
             </div>
@@ -267,8 +248,10 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
           th:href="@{${post.status.permalink}}"
           th:text="${post.status.permalink}"
           href="#"
-          class="link break-all text-(--primary)">https://example.com/post</a
+          class="link break-all text-(--primary)"
         >
+          https://example.com/post
+        </a>
         <div class="mt-2 flex flex-wrap gap-6">
           <div>
             <div
@@ -280,8 +263,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
             <div
               class="line-clamp-2 text-black/75 transition dark:text-white/75"
               th:text="${post.owner.displayName}"
-            >
-            </div>
+            ></div>
           </div>
           <div>
             <div
@@ -293,8 +275,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
             <div
               class="line-clamp-2 text-black/75 transition dark:text-white/75"
               th:text="${#dates.format(post.spec.publishTime,'yyyy-MM-dd')}"
-            >
-            </div>
+            ></div>
           </div>
           <div>
             <div
@@ -308,13 +289,13 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
               target="_blank"
               rel="noopener noreferrer"
               class="link line-clamp-2 text-(--primary)"
-              th:text="${theme.config?.post?.license?.name}">CC BY-NC-SA 4.0</a
+              th:text="${theme.config?.post?.license?.name}"
             >
+              CC BY-NC-SA 4.0
+            </a>
           </div>
         </div>
-        <span
-          class="icon-[fa6-brands--creative-commons] pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-[15rem] text-black/5 transition dark:text-white/5"
-        ></span>
+        <span class="icon-[fa6-brands--creative-commons] pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-[15rem] text-black/5 transition dark:text-white/5"></span>
       </div>
     </div>
   </article>
@@ -330,15 +311,12 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       th:href="@{${postCursor.previous.status.permalink}}"
       th:title="${postCursor.previous.spec.title}"
     >
-      <div
-        class="btn-card flex h-15 w-full max-w-full justify-start! gap-4 rounded-2xl px-4"
-      >
-        <span
-          class="icon-[material-symbols--chevron-left-rounded] text-2xl! font-black text-(--primary)"
-        ></span>
+      <div class="btn-card flex h-15 w-full max-w-full justify-start! gap-4 rounded-2xl px-4">
+        <span class="icon-[material-symbols--chevron-left-rounded] text-2xl! font-black text-(--primary)"></span>
         <span
           class="max-w-[calc(100%-3rem)] overflow-hidden overflow-ellipsis whitespace-nowrap text-black/75 transition dark:text-white/75"
-          th:text="${postCursor.previous.spec.title}"></span>
+          th:text="${postCursor.previous.spec.title}"
+        ></span>
       </div>
     </a>
     <div
@@ -353,15 +331,12 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       th:href="@{${postCursor.next.status.permalink}}"
       th:title="${postCursor.next.spec.title}"
     >
-      <div
-        class="btn-card flex h-15 w-full max-w-full justify-end! gap-4 rounded-2xl px-4"
-      >
+      <div class="btn-card flex h-15 w-full max-w-full justify-end! gap-4 rounded-2xl px-4">
         <span
           class="max-w-[calc(100%-3rem)] overflow-hidden overflow-ellipsis whitespace-nowrap text-black/75 transition dark:text-white/75"
-          th:text="${postCursor.next.spec.title}"></span>
-        <span
-          class="icon-[material-symbols--chevron-right-rounded] text-2xl! font-black text-(--primary)"
+          th:text="${postCursor.next.spec.title}"
         ></span>
+        <span class="icon-[material-symbols--chevron-right-rounded] text-2xl! font-black text-(--primary)"></span>
       </div>
     </a>
     <div
@@ -384,35 +359,39 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       评论
     </h2>
     <Fragment
-      set:html={'<halo:comment group="content.halo.run" kind="Post" th:attr="name=${post.metadata.name}" />'}
+      set:html={
+        '<halo:comment group="content.halo.run" kind="Post" th:attr="name=${post.metadata.name}" />'
+      }
     />
   </div>
 
-  <!-- 操作栏脚本（I27）：拆分自原 post.bundle.js（155K，含 140K qrcode 库）。
-       三文件按子开关独立门控；qrcode.bundle.js 仅在首次生成分享海报时由
-       post-share.js 按需注入（见 post-share.js 的 loadQRCode），文章页默认负载
-       从 155K 降至 ~25K。 -->
+  <!-- 操作栏脚本：拆分自原 post.bundle.js，三文件按子开关独立门控；qrcode.bundle.js 仅在
+       首次生成海报时由 post-share.js 按需注入，文章页默认负载从 155K 降至 ~25K。 -->
   <script
     th:if="${theme.config?.post?.actionBar?.enable != false and theme.config?.post?.actionBar?.like != false}"
     src={`${basePath}/assets/post-like.js?v=${ASSET_VERSION}`}
     defer
-    is:inline></script>
+    is:inline
+  ></script>
   <script
     th:if="${theme.config?.post?.actionBar?.enable != false and theme.config?.post?.actionBar?.share != false}"
     src={`${basePath}/assets/post-share.js?v=${ASSET_VERSION}`}
     defer
-    is:inline></script>
+    is:inline
+  ></script>
+  <!-- 门控必须与上方 #post-reward-btn 的 th:if 一致（含 rewardFinder != null），否则按钮与脚本二缺一 -->
   <script
-    th:if="${theme.config?.post?.actionBar?.enable != false and theme.config?.post?.actionBar?.reward != false}"
+    th:if="${theme.config?.post?.actionBar?.enable != false and theme.config?.post?.actionBar?.reward != false and rewardFinder != null}"
     src={`${basePath}/assets/post-reward.js?v=${ASSET_VERSION}`}
     defer
-    is:inline></script>
+    is:inline
+  ></script>
   <script
     is:inline
     th:if="${theme.config?.post?.summary == null or theme.config?.post?.summary?.summaryEffect == null or theme.config?.post?.summary?.summaryEffect == 'typewriter'}"
   >
     // 文章摘要打字机效果
-    // （修复 I24 遗留：曾有一段完全重复的代码——var timer ×2、启动 setTimeout ×2、
+    // （注意别写重复代码——曾出现 var timer ×2、启动 setTimeout ×2、
     //   visibilitychange 监听 ×2，双监听器会导致打字机双循环/异常）
     (function () {
       var el = document.getElementById("summary-text");
@@ -435,7 +414,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
         }
       }
       timer = setTimeout(type, 600);
-      // I24：后台标签页暂停打字（进度保留，回前台继续）
+      // 后台标签页暂停打字（进度保留，回前台继续）
       function onVisibilityChange() {
         if (document.hidden) {
           if (timer) {
@@ -451,7 +430,6 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       // 若不在离开时销毁，visibilitychange 监听器会逐次累积泄漏。
       // astro:before-swap 由 @swup/astro 在换出本页前分发（换入时不存在本监听器，
       // 不会误伤新页面）；astro:after-swap 兜底（el 已脱离文档才执行，同理不误伤）。
-      // 注：不能用 swup:contentReplaced——Swup v3 事件名，v4 分发 swup:{hook}，从未触发。
       function destroy() {
         if (timer) {
           clearTimeout(timer);
@@ -500,91 +478,16 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
       });
     })();
   </script>
-
-  <!-- CDN 图片处理：<template> 阻止预加载 → JS 加参数后插入 DOM，避免双加载 -->
-  <script
-    is:inline
-    define:vars={{ CDN_SUFFIX_PATTERNS, SUFFIX_ELIGIBLE_EXTENSIONS }}
-  >
+  <!-- 正文图片补充懒加载与宽高占位（响应式属性由 Halo 自动注入，本脚本不改写图片地址） -->
+  <script is:inline>
     (function () {
-      var TEMPLATE_ID = "content-template";
-      var PLACEHOLDER_ID = "content-placeholder";
-
-      function processAndInsert() {
-        var template = document.getElementById(TEMPLATE_ID);
-        var placeholder = document.getElementById(PLACEHOLDER_ID);
-        if (!template || !placeholder) return;
-
-        // 读取主题图片处理配置
-        var provider = "none",
-          imgWidth = 0,
-          customFmt = "";
-        var configEl = document.getElementById("theme-config");
-        if (configEl) {
-          try {
-            var config = JSON.parse(configEl.textContent || configEl.innerText);
-            var ip =
-              config &&
-              config.performance &&
-              config.performance.imageProcessing;
-            if (ip) {
-              provider = ip.provider || "none";
-              imgWidth = ip.article_image_width || 0;
-              customFmt = ip.custom_format || "";
-            }
-          } catch (e) {}
-        }
-
-        // 按宽度生成 CDN 后缀（provider 映射表与 image-suffix.ts 保持同步）
-        function makeSuffix(w) {
-          if (provider === "custom" && customFmt)
-            return customFmt.replace("{width}", String(w));
-          var pattern = CDN_SUFFIX_PATTERNS[provider] || "";
-          return pattern ? pattern.replace("{width}", String(w)) : "";
-        }
-
-        var suffix = imgWidth > 0 ? makeSuffix(imgWidth) : "";
-
-        var fragment = template.content.cloneNode(true);
-        var contentEl = fragment.getElementById("content");
+      function decorateContentImages() {
+        var contentEl = document.getElementById("content");
         if (!contentEl) return;
 
-        // 扩展名白名单由构建期注入（与 src/utils/image-suffix.ts 的
-        // SUFFIX_ELIGIBLE_EXTENSIONS 同源，避免服务端/客户端两边漂移）。
-        // 先剥离查询串再比结尾，使函数自身语义完整，不依赖调用方已排除含 ? 的 URL。
-        function isSuffixEligible(src) {
-          var path = src.split("?")[0].toLowerCase();
-          for (var i = 0; i < SUFFIX_ELIGIBLE_EXTENSIONS.length; i++) {
-            var ext = SUFFIX_ELIGIBLE_EXTENSIONS[i];
-            if (path.slice(-ext.length) === ext) return true;
-          }
-          return false;
-        }
-
-        // 在插入 DOM 前给内容图片加上 CDN 处理参数
-        if (suffix) {
-          contentEl.querySelectorAll("img").forEach(function (img) {
-            var src = img.getAttribute("src");
-            if (
-              src &&
-              src.indexOf("?") === -1 &&
-              src.indexOf("!/") === -1 &&
-              isSuffixEligible(src)
-            ) {
-              // 仅主图加 CDN 压缩后缀（默认 1920），不加 srcset：
-              // srcset 会让浏览器按 sizes+DPR 选小档位图，img.naturalWidth 变小，
-              // 而灯箱（content-photoswipe）按 naturalWidth 取宽高，导致灯箱
-              // 打开很小。省流量诉求由下方 I2 的 loading="lazy" 覆盖。
-              img.setAttribute("src", src + suffix);
-            }
-          });
-        }
-
-        // I2：懒加载 + 宽高占位（width/height 属性提供 aspect-ratio 提示，
-        // 避免图片加载造成 CLS；与照片页 EXIF 占位先例同思路）。
-        // 正文 markdown 无宽高元数据，占位用 16:9 仅为加载前的比例提示；
-        // 加载完成后按真实比例（naturalWidth/naturalHeight）修正并移除占位属性，
-        // 避免固定比例与正文实际图片比例不符导致变形。
+        // 懒加载 + 宽高占位（width/height 提供 aspect-ratio 提示，避免 CLS）。正文无宽高
+        // 元数据，800×450（16:9）只是首帧占位：加载完成后按 naturalWidth/naturalHeight
+        // 修正比例并移除这两个属性。
         contentEl.querySelectorAll("img").forEach(function (img) {
           if (!img.getAttribute("loading")) {
             img.setAttribute("loading", "lazy");
@@ -593,7 +496,7 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
             img.setAttribute("decoding", "async");
           }
           if (!img.getAttribute("width") && !img.getAttribute("height")) {
-            var w = imgWidth > 0 ? imgWidth : 800;
+            var w = 800;
             img.setAttribute("width", String(w));
             img.setAttribute("height", String(Math.round((w * 9) / 16)));
             img.addEventListener("load", function () {
@@ -606,21 +509,16 @@ const basePath = import.meta.env.BASE_URL.replace(/\/+$/, "");
             });
           }
         });
-
-        placeholder.replaceWith(contentEl);
-        template.remove();
       }
 
       if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", processAndInsert);
+        document.addEventListener("DOMContentLoaded", decorateContentImages);
       } else {
-        processAndInsert();
+        decorateContentImages();
       }
 
-      // 注：Swup 换页后的重新处理由 SwupScriptsPlugin 重执行本脚本覆盖（每次进
-      // 文章页脚本都重新跑一遍并立即 processAndInsert）。原 swup:contentReplaced
-      // 监听已删除——那是 Swup v3 事件名，v4 分发 swup:{hook}（如
-      // swup:content:replace），该监听从未触发，且每进一次文章页就累积一个。
+      // 注：Swup 换页后的重新处理由 SwupScriptsPlugin 重执行本脚本覆盖
+      // （每次进文章页脚本都重新跑一遍并立即 decorateContentImages）。
     })();
   </script>
 </MainGridLayout>

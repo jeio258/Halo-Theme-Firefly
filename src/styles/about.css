@@ -371,13 +371,9 @@
     grid-template-columns: minmax(0, 1fr) 288px;
   }
 }
-/* 卡片内边距：主列与侧列统一取同一个值。
-   原先侧列写死 1rem、主列是 clamp(1rem,2.5vw,1.45rem)，同一容器内两列卡片的
-   水平内边距差了 0.45rem（宽屏）⇒ 标题到卡片左右边缘的留白不一致，侧列看着"贴边"。
-   现两列共用一套值；窄屏档（≤640px）两者仍然都是 0.9rem。
-   1.4.x：整体再收一档（宽屏 1.45rem → 1.15rem）—— 带主题色竖线的卡片标题，
-   上方与右侧都是纯空白，原来是卡片里最"空"的两处；四边同比收窄后标题不再悬在
-   右上角一大片留白里，同时避免只收上/右造成的内容偏心。 */
+/* 卡片内边距：主列与侧列共用同一套值（此前侧列 1rem、主列 clamp(1rem,2.5vw,1.45rem)，
+   宽屏下两列差 0.45rem、侧列看着「贴边」）；窄屏档（≤640px）两者均为 0.9rem。带主题色
+   竖线的卡片标题上方/右侧留白最多，故四边同比收窄（宽屏 1.15rem），避免内容偏心。 */
 .about-col-main > section,
 .about-col-side > section {
   padding: clamp(0.9rem, 2.2vw, 1.15rem);
@@ -482,17 +478,18 @@
   /* 描边取主题色：与友链页面 /links 的链接卡片（.btn-card-outline）同款 */
   border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
   border-radius: 0.78rem;
-  background: color-mix(in srgb, var(--card-bg) 95%, var(--primary) 5%);
+  background: var(--card-bg);
   color: inherit;
   text-decoration: none;
   transition:
-    transform 0.18s,
-    border-color 0.18s,
-    background-color 0.18s,
-    box-shadow 0.18s;
+    transform var(--card-hover-duration),
+    border-color var(--card-hover-duration),
+    background-color var(--card-hover-duration),
+    box-shadow var(--card-hover-duration);
 }
 /* 悬停反馈分两层：
-   ① 颜色层（描边 + 底 + 标题转主题色）恒定，不受开关影响，保证「可点」永远看得出来；
+   ① 颜色层（描边提亮 + 主色淡底 + 标题转主题色）恒定，不受开关影响，保证「可点」永远看得出来；
+      静态无填充，悬浮才叠主色（分档见 AGENTS「卡片悬浮语言」）；
    ② 位移 + 阴影层接入主题「样式开关 → 卡片悬浮效果」（body.card-hover-lift-enabled），
       与 .card-hover-lift 共用同一套判定，桌面端（≥768px）生效。 */
 .about-proj:hover,
@@ -639,7 +636,7 @@
    视觉目标：像「一排名片」而不是「一排按钮」。
    · 圆形 logo 弱化轮廓，让名称成为主角
    · 描述行降一级颜色、单行省略，避免长短不一撑破网格
-   · 悬停：描边提亮 + 淡主色底（恒定），上浮 1px 受「卡片悬浮效果」开关控制 */
+   · 悬停：描边提亮 + 淡主色底（恒定，静态无填充），上浮 1px 受「卡片悬浮效果」开关控制 */
 .about-friend {
   display: grid;
   grid-template-columns: 1.5rem minmax(0, 1fr);
@@ -650,15 +647,15 @@
   /* 描边取主题色：与友链页面 /links 的链接卡片（.btn-card-outline）同款 */
   border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
   border-radius: 0.55rem;
-  background: color-mix(in srgb, var(--primary) 5%, var(--card-bg));
+  background: var(--card-bg);
   color: var(--btn-content);
   text-decoration: none;
   transition:
-    color 0.18s,
-    border-color 0.18s,
-    background-color 0.18s,
-    box-shadow 0.18s,
-    transform 0.18s;
+    color var(--card-hover-duration),
+    border-color var(--card-hover-duration),
+    background-color var(--card-hover-duration),
+    box-shadow var(--card-hover-duration),
+    transform var(--card-hover-duration);
 }
 .about-friend:hover,
 .about-friend:focus-visible {
@@ -678,16 +675,15 @@
     box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 14%, transparent);
   }
 }
-/* 点击按压反馈（与全站按钮一致：底色加深 + 轻缩、按下不再上浮）。两条带
-   body.card-hover-lift-enabled 的选择器与上方 hover 上浮规则同特异性，靠源码
-   顺序在按下时接管（transform 由 translateY 变为 scale）；transform 有卡片自身
-   的 0.18s 过渡，缩放平滑。 */
+/* 点击按压反馈（与全站按钮一致：底色加深 + 轻缩）。缩放走独立 scale 属性，
+   不占 transform（桌面端悬浮的 translateY 保留），也不在 transition 列表里，
+   按下即时生效、不被悬浮过渡拖慢。 */
 .about-proj:active,
 .about-friend:active,
 body.card-hover-lift-enabled .about-proj:active,
 body.card-hover-lift-enabled .about-friend:active {
   box-shadow: none;
-  transform: scale(0.98);
+  scale: 0.98;
 }
 .about-proj:active,
 .about-friend:active {
@@ -817,19 +813,15 @@ body.card-hover-lift-enabled .about-friend:active {
   font-size: 0.95rem;
   line-height: 1;
 }
-/* 个人简介小组件的社交图标是 iconify 的 svg 形态（format: svg），
-   输出自带 width/height="24" 这类**绝对像素**，必须按 em 重设尺寸，
-   否则 24px 会撑破 1.1rem 的图标列。fill 已是 currentColor，跟着上面的
-   color 走（默认次要灰、hover 主色）。 */
+/* 个人简介小组件的社交图标是 iconify svg 形态，自带 width/height="24" 绝对像素，
+   必须按 em 重设尺寸（否则撑破 1.1rem 图标列）；fill 已是 currentColor，跟随 color。 */
 .about-connect-icon > svg {
   display: block;
   width: 1.05em;
   height: 1.05em;
 }
-/* 右上角箭头：与「最近提交」的 .about-activity-arrow 同一套动效 ——
-   hover / focus 时变主题色并向右上飘 0.1rem。
-   这里显式声明 color（原先靠继承 .about-connect 的颜色）只是为了让颜色过渡
-   由箭头自己控制，跟 .about-activity-arrow 的写法保持一致。 */
+/* 右上角箭头：与「最近提交」的 .about-activity-arrow 同一套动效（hover / focus 变主题色
+   并向右上飘 0.1rem）；显式声明 color 让颜色过渡由箭头自己控制。 */
 .about-connect-arrow {
   color: var(--content-meta);
   font-size: 0.82rem;
@@ -1069,10 +1061,9 @@ body.card-hover-lift-enabled .about-friend:active {
 }
 
 /* ================= ⑭ 页脚卡 ================= */
-/* ⚠️ margin-top 不能省：外层 th:with 容器带 th:remove="tag"，渲染后页脚卡是
-   .about-cols-wrap 的**直接兄弟**，而 .about-cols-wrap 没有下外边距 ⇒
-   不加这条时页脚卡与两栏区块的间距是 0，和全页 1rem 的节奏对不上。
-   用「上外边距」而不是给 .about-cols-wrap 补下外边距：页脚卡被隐藏时不留空档。 */
+/* ⚠️ margin-top 不能省：外层 th:with 容器带 th:remove="tag"、渲染后页脚卡直接跟
+   .about-cols-wrap（无下外边距）相邻，不加则间距为 0。用上外边距而非补下外边距，
+   页脚卡被隐藏时不留空档。 */
 section.about-footer-card {
   display: flex;
   align-items: center;

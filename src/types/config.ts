@@ -12,14 +12,12 @@ export interface ThemeConfig {
   external_link: ExternalLink;
 }
 
-/** 扩展页面设置：朋友圈 / 时间轴 / 技能 / 关于页面 / 打赏页面（后台未配置的子组可能缺失，均视为可选） */
+/** 扩展页面设置：朋友圈 / 时间轴 / 技能 / 关于页面（后台未配置的子组可能缺失，均视为可选） */
 export interface ExtendPages {
   friends?: Friends;
   timeline?: Timeline;
   skills?: Skills;
   about?: About;
-  /** 打赏页面（extendPages.reward） */
-  reward?: Reward;
 }
 
 /** 欢迎弹窗配置 */
@@ -567,33 +565,6 @@ export interface AboutFooterLinkItem {
   url?: string;
 }
 
-// ========== 「打赏页面」设置 ==========
-/**
- * 「打赏页面」设置（对应 settings.yaml 的 extendPages.reward 组）。
- * 收款二维码不在此组：与文章打赏模态框同源（post.actionBar.rewardSetting.wechat_qr / alipay_qr）。
- */
-export interface Reward {
-  /** 打赏用途说明（textarea，多行）；留空则不显示说明框 */
-  usage?: string;
-  /** 打赏者名单（留空则整卡不渲染） */
-  sponsors?: RewardSponsor[];
-}
-
-/**
- * 打赏者条目（后台昵称、金额、日期必填〔validation: required〕，头像可选）。
- * 前台对空值仍分别兜底：头像缺失显示昵称首字，金额 / 日期为空则不渲染。
- */
-export interface RewardSponsor {
-  /** 昵称；头像缺失时以首字兜底 */
-  name?: string;
-  /** 头像（attachment，URL 字符串）；留空显示昵称首字 */
-  avatar?: string;
-  /** 金额（自由文本，如 50 或 ¥50，前台自动补全 ¥） */
-  amount?: string;
-  /** 日期（$formkit: date，形如 2026-01-01） */
-  date?: string;
-}
-
 // ========== 侧边栏 ==========
 export interface Sidebar {
   widgetsConfig: WidgetsConfig;
@@ -613,7 +584,7 @@ export interface Sidebar {
   calendar?: SidebarCalendar;
 }
 
-// 以下五个分组是各小组件的「唯一配置源」：条目列表里只放「小组件 + 吸顶」，
+// 以下分组是各小组件的「唯一配置源」：条目列表里只放「小组件 + 吸顶」，
 // 详细配置外提到这里，左右侧边栏共用同一份（原先是每个条目各存一份）
 export interface SidebarSiteStats {
   /**
@@ -659,7 +630,7 @@ export interface SidebarSchedule {
 }
 
 export interface SidebarCalendar {
-  /** 是否在日历下方显示年度文章热力图，缺省 true（后台未配置时视为开启） */
+  /** 是否显示日历下方的年度文章热力图，缺省视为开启 */
   showHeatmap?: boolean;
 }
 
@@ -769,15 +740,10 @@ export interface PostActionBar {
   share?: boolean;
   /** 打赏 */
   reward?: boolean;
-  /** 打赏设置 */
+  /** 打赏设置（收款码 / 文案 / 爱发电入口由「打赏插件」提供，本组只控制弹窗的页面跳转按钮） */
   rewardSetting?: {
-    title?: string;
-    wechat_qr?: string;
-    alipay_qr?: string;
-    /** 是否在打赏弹窗底部显示「打赏页面」跳转按钮（后台默认关） */
+    /** 是否在打赏弹窗底部显示「打赏页面」跳转按钮（后台默认关）；目标固定为插件提供的 /reward */
     page_enable?: boolean;
-    /** 打赏页面路径（默认 /reward） */
-    page_url?: string;
   };
 }
 
@@ -817,12 +783,9 @@ export interface Footer {
 }
 
 /**
- * 页脚样式配置（settings.yaml 的 footer.styleConfig 组）。
- *
- * 说明：Halo 实际存的是任意字符串，这里的字面量联合只是「约定的合法值」。
- * 模板侧用否定式判断（`!= 'card'` / `!= 'star'` 走经典分支），所以
- * null（升级前没有该字段）、空串、未知值都会静默回落到经典款，不会出现
- * 两个互斥分支都不渲染的情况。
+ * 页脚样式配置（settings.yaml 的 footer.styleConfig 组）。Halo 实际存任意字符串，这里的
+ * 字面量联合只是约定的合法值：模板侧用否定式判断（`!= 'card'` / `!= 'star'` 走经典分支），
+ * null（升级前无该字段）、空串、未知值都静默回落经典款，不会两个互斥分支都不渲染。
  */
 export interface FooterStyleConfig {
   /** 页脚样式类型：classic 经典页脚（默认）/ card 卡片页脚 */

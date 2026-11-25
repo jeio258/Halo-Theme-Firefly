@@ -400,7 +400,7 @@ spec:
               key: welcome_enable
               label: 启用
               value: false
-              help: "开启后访客进入网站时显示欢迎弹窗；访客关闭后本次会话不再弹出。IP 定位复用天气小组件配置的腾讯位置服务 Key，在侧边栏设置的「天气小组件」分组中配置 Key 后生效。"
+              help: "开启后访客进入网站时显示欢迎弹窗，关闭后本次会话不再弹出。IP 定位复用「天气小组件」中配置的腾讯位置服务 Key。"
             - $formkit: select
               name: position
               id: welcome_position
@@ -435,7 +435,7 @@ spec:
               if: "$get(welcome_enable).value"
               label: 定位失败文案
               value: "未知星球"
-              help: "未配置腾讯位置服务 Key 或定位失败时，替换 {location} 的地点文字（请填写地点名词，如：未知星球）。模板为「来自 {location} 的小伙伴」时，将显示「来自未知星球的小伙伴」"
+              help: "未配置 Key 或定位失败时替换 {location} 的文字（填地点名词，如：未知星球）。例：「来自 {location} 的小伙伴」→「来自未知星球的小伙伴」"
     - group: style
       label: 样式设置
       formSchema:
@@ -510,7 +510,7 @@ spec:
                   accepts:
                     - "image/*"
                   value: []
-                  help: "选择多张静态图片，按顺序循环切换；少于 2 张时按单图显示。支持外部链接，重复链接会自动附加查询参数强制单独请求；随机图接口建议使用无状态服务（uapis.cn 等接口存在同一浏览器会话内反复请求返回同一张图的问题"
+                  help: "多图按顺序循环切换，少于 2 张时按单图显示；支持外链，重复链接会自动附加参数单独请求。随机图接口请使用无状态服务（避免同一会话反复拿到同一张图）。"
                 - $formkit: select
                   name: effect
                   label: 切换效果
@@ -747,7 +747,7 @@ spec:
                   id: style
                   label: 切换动画样式
                   value: fade
-                  help: '已知 Mac 平台部分浏览器"圆形扩散"与"擦除"动画显示异常（圆心偏移、边缘残留、模糊丢失），建议使用淡入淡出以获得多平台更佳体验；需开启菜单栏设置中的「配色（深浅色）切换」开关后生效'
+                  help: "Mac 部分浏览器上「圆形扩散 / 擦除」动画显示异常，建议改用淡入淡出；需先开启菜单栏设置中的「配色（深浅色）切换」"
                   options:
                     - label: 淡入淡出
                       value: fade
@@ -1474,7 +1474,7 @@ spec:
               name: tencent_key
               label: 腾讯位置服务 Key
               value: ""
-              help: "可选。填写后天气组件优先走腾讯链路（更贴近国内天气口径），同时供欢迎弹窗的 IP 定位复用；留空（默认）则天气走免 Key 的 open-meteo 链路。WebService API 类型，免费注册：https://lbs.qq.com/dev/console/application/mine；请对控制台【账户额度】下的「天气:天气」和「IP定位」分别进行配额分配，确保调用量/并发量满足网站需求"
+              help: "可选，留空时天气走免 Key 链路。腾讯位置服务 Key（免费注册：https://lbs.qq.com/dev/console/application/mine）；Key 会明文出现在前端源码中，建议配置域名白名单，并在控制台为「天气」与「IP 定位」分别分配合额。"
             - $formkit: text
               name: city
               label: 城市
@@ -1608,7 +1608,7 @@ spec:
         - $formkit: group
           name: calendar
           label: 站点日历小组件
-          help: "把「站点日历」加入任一侧边栏列表即显示；按发布日展示全站已发布文章的分布，数据实时来自站点文章"
+          help: "把「站点日历」加入任一侧边栏列表即显示；按发布日统计全站公开文章"
           value:
             showHeatmap: true
           children:
@@ -1616,7 +1616,7 @@ spec:
               name: showHeatmap
               label: 年度文章热力图
               value: true
-              help: "在日历下方显示 12 月 × 4 周的文章分布热力图，点格子可跳转该月"
+              help: "在日历下方显示 12 月 × 4 周的热力图，点格子跳到该月"
     - group: post
       label: 文章
       formSchema:
@@ -1759,9 +1759,7 @@ spec:
             share: true
             reward: true
             rewardSetting:
-              title: "如果这篇文章对你有帮助，可以请我喝杯咖啡！"
-              wechat_qr: ""
-              alipay_qr: ""
+              page_enable: false
           children:
             - $formkit: switch
               name: enable
@@ -1787,51 +1785,21 @@ spec:
               if: "$get(actionbar_enable).value"
               label: 启用打赏
               value: true
-              help: "显示打赏按钮，点击弹出微信/支付宝收款二维码"
+              help: "显示打赏按钮，收款码与文案取自「打赏插件」设置；未启用时入口隐藏"
             - $formkit: group
               name: rewardSetting
               label: 打赏设置
               if: "$get(actionbar_reward).value"
+              help: "收款码 / 文案 / 爱发电入口在「打赏插件」设置里配置"
               value:
-                title: "如果这篇文章对你有帮助，可以请我喝杯咖啡！"
-                wechat_qr: ""
-                alipay_qr: ""
                 page_enable: false
-                page_url: "/reward"
               children:
-                - $formkit: textarea
-                  name: title
-                  label: 打赏文案
-                  value: "如果这篇文章对你有帮助，可以请我喝杯咖啡！"
-                  help: "打赏弹窗顶部的自定义文案"
-                - $formkit: attachment
-                  name: wechat_qr
-                  label: 微信收款码
-                  accepts:
-                    - "image/*"
-                  aspectRatio: "1/1"
-                  value: ""
-                  help: "上传微信收款二维码图片（建议 1:1 正方形）"
-                - $formkit: attachment
-                  name: alipay_qr
-                  label: 支付宝收款码
-                  accepts:
-                    - "image/*"
-                  aspectRatio: "1/1"
-                  value: ""
-                  help: "上传支付宝收款二维码图片（建议 1:1 正方形）"
                 - $formkit: switch
                   name: page_enable
                   id: actionbar_reward_page_enable
                   label: 显示「打赏页面」按钮
                   value: false
-                  help: "在打赏弹窗底部显示跳转到打赏页面的按钮"
-                - $formkit: text
-                  name: page_url
-                  label: 打赏页面路径
-                  if: "$get(actionbar_reward_page_enable).value"
-                  value: "/reward"
-                  help: "打赏页面路径，如 /reward（需先在「页面 → 自定义页面」中创建对应页面）"
+                  help: "在打赏弹窗底部显示跳转到打赏页面（插件提供的 /reward）的按钮"
     - group: extendPages
       label: 扩展页面
       formSchema:
@@ -2378,42 +2346,6 @@ spec:
                       name: url
                       label: 链接
                       validation: required
-        - $formkit: group
-          name: reward
-          label: 打赏页面
-          help: "请先在「页面 → 自定义页面」中创建对应的页面，然后在此配置页面内容"
-          children:
-            - $formkit: textarea
-              name: usage
-              label: 打赏用途说明
-              value: "您的打赏将用于服务器维护、内容创作和功能开发，帮助我持续提供优质内容。"
-              help: "显示在页面顶部的说明框，支持多行，留空则不显示该框"
-            - $formkit: array
-              name: sponsors
-              label: 打赏者名单
-              value: []
-              help: "留空则不显示打赏者名单卡片；头像留空显示昵称首字"
-              children:
-                - $formkit: text
-                  name: name
-                  label: 昵称
-                  validation: required
-                - $formkit: attachment
-                  name: avatar
-                  label: 头像
-                  accepts:
-                    - "image/*"
-                  aspectRatio: "1/1"
-                  value: ""
-                - $formkit: text
-                  name: amount
-                  label: 金额
-                  validation: required
-                  help: "填写金额，如 50 或 ¥50（前台显示自动补全 ¥）"
-                - $formkit: date
-                  name: date
-                  label: 日期
-                  validation: required
     - group: footer
       label: 页脚
       formSchema:
@@ -2431,7 +2363,7 @@ spec:
               key: footer_style
               label: 页脚样式类型
               value: classic
-              help: "经典：单栏居中的原版细线页脚；卡片：整块卡片式页脚"
+              help: "经典：单栏居中的细线页脚；卡片：整块卡片式页脚"
               options:
                 - label: 经典页脚
                   value: classic
@@ -2753,97 +2685,29 @@ spec:
           label: 新窗口打开
           value: true
           help: "开启后将在新标签页打开外部链接"
-    - group: performance
-      label: 速度优化
+    - group: misc
+      label: 杂项设置
       formSchema:
         - $formkit: group
-          name: imageProcessing
-          label: 图片处理
-          value:
-            provider: none
-            card_cover_width: 400
-            article_image_width: 1200
-            custom_format: ""
-            banner_width: 1920
-            avatar_size: 512
+          name: auth
+          label: 认证设置
           children:
             - $formkit: select
-              name: provider
-              id: image_processing_provider
-              label: 图片处理服务
-              value: none
-              help: "选择你的图片存储/CDN 服务，以启用实时图片压缩缩放。此功能会对文章封面图和文章内图片进行分辨率压缩处理，以便达到速度优化效果。\n如果图片存储在非halo内部存储，需在对应服务端开启图片处理功能。\n建议值仅供参考，以实际显示效果自主调试为准。\n此功能测试中，无法保证所有功能正常，如有问题请反馈。"
-              options:
-                - label: 不处理（使用原图）
-                  value: none
-                - label: Halo 内置附件存储
-                  value: halo
-                - label: 阿里云 ESA / DCDN
-                  value: aliyun_esa
-                - label: 阿里云 OSS
-                  value: aliyun_oss
-                - label: 腾讯云 EdgeOne
-                  value: tencent_eo
-                - label: 腾讯云 COS（数据万象）
-                  value: tencent_cos
-                - label: 七牛云
-                  value: qiniu
-                - label: 又拍云
-                  value: upyun
-                - label: 自定义
-                  value: custom
-            - $formkit: text
-              name: custom_format
-              if: "$get(image_processing_provider).value === 'custom'"
-              label: 自定义参数格式
-              value: ""
-              help: "使用 {width} 作为宽度占位符。例如：?image_process=resize,w_{width}"
-            - $formkit: number
-              name: card_cover_width
-              if: "$get(image_processing_provider).value !== 'none'"
-              label: 首页卡片封面宽度 (px)
-              value: 400
-              min: 0
-              max: 2000
-              step: 50
-              help: "建议 300-800，设为 0 则使用原图不压缩。原图宽度不足时仅支持缩小"
-            - $formkit: number
-              name: article_image_width
-              if: "$get(image_processing_provider).value !== 'none'"
-              label: 文章页图片宽度 (px)
-              value: 1200
-              min: 0
-              max: 2000
-              step: 50
-              help: "建议 800-2000，设为 0 则使用原图不压缩。当使用内部存储时仅处理文章封面图，正文图片宽度由系统自动优化；使用 CDN 时封面图与正文图片均生效。原图宽度不足时仅支持缩小"
-            - $formkit: number
-              name: banner_width
-              if: "$get(image_processing_provider).value !== 'none'"
-              label: Banner 图片宽度 (px)
-              value: 1920
-              min: 0
-              max: 3840
-              step: 160
-              help: "Banner 图片的缩放宽度（px）。设为 0 则使用原图不压缩。建议值：1920\n注：Banner 会按屏幕自适应加载——固定 400/800/1200/1600 档位；使用外部 CDN 时，本项宽度还会作为顶档参与选择（超过 1600 才生效）。本项宽度同时用作兜底地址（不支持 srcset 的浏览器）与首页预加载地址；外部 CDN 下设为 0 表示不分档，直接加载原图"
-            - $formkit: number
-              name: avatar_size
-              if: "$get(image_processing_provider).value !== 'none'"
-              label: 头像尺寸 (px)
-              value: 512
-              min: 0
-              max: 512
-              step: 32
-              help: "头像图片的缩放宽度（px）。设为 0 则使用原图不压缩。建议值：512"
-    - group: auth
-      label: 认证
-      formSchema:
-        - $formkit: select
-          name: loginPage
-          id: login_page
-          label: 登录界面
-          value: halo
-          options:
-            - label: 主题认证界面
-              value: theme
-            - label: Halo 默认
+              name: loginPage
+              id: login_page
+              label: 登录界面
               value: halo
+              options:
+                - label: 主题认证界面
+                  value: theme
+                - label: Halo 默认
+                  value: halo
+        - $formkit: group
+          name: seo
+          label: SEO 设置
+          children:
+            - $formkit: switch
+              name: enable_metadata
+              label: 输出 canonical 与社交分享标签
+              value: true
+              help: "关闭后不再输出 canonical 与 Open Graph 标签；已通过插件提供同类标签的站点可关闭本项避免重复"

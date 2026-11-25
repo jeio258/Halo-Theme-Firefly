@@ -1,14 +1,13 @@
 ---
 // 瞬间卡片：moments 列表（variant="list"，带「更多」）/ moment 详情（"detail"，带「返回」）共用。
-// 外壳 card-base + card-hover-lift；勿挂 .btn-card-outline（主题色细描边条目卡语言，
-// 会被「卡片边框与阴影」开关排除，表现为自己加了边框）。
+// 外壳 card-base + card-hover-lift；勿挂 .btn-card-outline（会被「卡片边框与阴影」开关排除）。
 //
 // 约定（改动前必读）：
 // - 依赖外层 Thymeleaf 变量 moment（两页同名）；根元素 th:with 出 content 供 MomentMedia 读取。
-// - 缩进轨道：正文/媒体/操作栏统一 md:ml-[4.25rem]（头像 3.25rem + 间距 1rem），移动端归零。
-// - 脚本钩子（样式见 components.css）：点赞 .moment-upvote-btn / .moment-upvote-count
-//   （已投高亮 .is-upvoted，含禁用点击）；复制 .moment-copy-btn + data-copy-path
-//   （moment-copy.js 绑定）；水印 .moment-card-watermark（右下角 bolt，参数可调）。
+// - 缩进轨道：正文 / 媒体 / 操作栏统一 md:ml-[4.25rem]（头像 3.25rem + 间距 1rem），移动端归零。
+// - 脚本钩子（样式见 components.css，勿改名）：点赞 .moment-upvote-btn / .moment-upvote-count
+//   （已投高亮 .is-upvoted）；复制 .moment-copy-btn + data-copy-path（moment-copy.js 绑定）；
+//   水印 .moment-card-watermark。
 // - 正文 id="content" 只在详情页输出（TOC 扫描 #content；列表页重复 id 非法）。
 import MomentMedia from "./MomentMedia.astro";
 
@@ -54,23 +53,21 @@ const commentCountExpr =
     </div>
     <div class="flex min-h-[3.25rem] min-w-0 flex-1 flex-col justify-between">
       <div class="flex min-w-0 items-center gap-2">
-        {
-          isDetail ? (
-            <h1
-              class="truncate text-base font-bold text-(--primary)"
-              th:text={nameTextExpr}
-            >
-              Moment
-            </h1>
-          ) : (
-            <div
-              class="truncate text-base font-bold text-(--primary)"
-              th:text={nameTextExpr}
-            >
-              Ethereal
-            </div>
-          )
-        }
+        {isDetail ? (
+          <h1
+            class="truncate text-base font-bold text-(--primary)"
+            th:text={nameTextExpr}
+          >
+            Moment
+          </h1>
+        ) : (
+          <div
+            class="truncate text-base font-bold text-(--primary)"
+            th:text={nameTextExpr}
+          >
+            Ethereal
+          </div>
+        )}
         <!-- 复制链接：链环图标，默认隐藏、卡片 hover / 键盘聚焦渐现（.moment-copy-btn，
              见 components.css）；-my-2 抵消按钮高度，昵称行不被撑高 -->
         <button
@@ -90,12 +87,8 @@ const commentCountExpr =
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path
-                d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-              ></path>
-              <path
-                d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-              ></path>
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
             </svg>
           </span>
           <span class="moment-copy-check" aria-hidden="true">
@@ -119,20 +112,20 @@ const commentCountExpr =
           th:datetime="${moment.spec.releaseTime}"
           th:title="${moment.spec.releaseTime != null ? #dates.format(moment.spec.releaseTime, 'yyyy-MM-dd HH:mm') : null}"
         >
-          <span class="icon-[material-symbols--schedule-rounded] text-[0.95rem]"
-          ></span>
-          <span
-            th:text="${moment.spec.releaseTime != null ? #dates.format(moment.spec.releaseTime, 'MM-dd HH:mm') : ''}"
-            >09-21 14:30</span
-          >
+          <span class="icon-[material-symbols--schedule-rounded] text-[0.95rem]"></span>
+          <span th:text="${moment.spec.releaseTime != null ? #dates.format(moment.spec.releaseTime, 'MM-dd HH:mm') : ''}">
+            09-21 14:30
+          </span>
         </time>
         <span class="contents" th:if="${not #lists.isEmpty(moment.spec.tags)}">
           <a
             class="rounded-full bg-(--btn-regular-bg) px-2 py-0.5 text-xs font-semibold text-(--btn-content) transition hover:bg-(--btn-regular-bg-hover)"
             th:each="tagName : ${moment.spec.tags}"
             th:href="@{/moments(tag=${tagName})}"
-            th:text="${'#' + tagName}">#Tag</a
+            th:text="${'#' + tagName}"
           >
+            #Tag
+          </a>
         </span>
       </div>
     </div>
@@ -145,13 +138,12 @@ const commentCountExpr =
       id={isDetail ? "content" : undefined}
       class="moment-feed-content custom-md markdown-content prose prose-base max-w-none! text-75 dark:prose-invert!"
       th:utext="${content.html}"
-    >
-    </div>
+    ></div>
 
     <MomentMedia />
 
     <footer class="mt-3.5 flex flex-wrap items-center gap-2 text-sm">
-      <!-- 点赞：保留原脚本钩子（upvote.js 乐观更新 + 失败回滚 + .is-upvoted 高亮） -->
+      <!-- 点赞：upvote 脚本钩子（src/scripts/assets/upvote.ts：乐观更新 + 失败回滚 + .is-upvoted 高亮） -->
       <button
         type="button"
         class="moment-action moment-upvote-btn"
@@ -159,13 +151,13 @@ const commentCountExpr =
         th:attr="data-moment=${moment.metadata.name}"
         th:data-count="${moment.stats != null ? moment.stats.upvote : 0}"
       >
-        <span
-          class="icon-[material-symbols--thumb-up-outline-rounded] text-base"
-        ></span>
+        <span class="icon-[material-symbols--thumb-up-outline-rounded] text-base"></span>
         <span
           class="moment-upvote-count"
-          th:text="${moment.stats != null ? moment.stats.upvote : 0}">0</span
+          th:text="${moment.stats != null ? moment.stats.upvote : 0}"
         >
+          0
+        </span>
       </button>
 
       <!-- 评论：详情页滚到本页 #comment；列表页跳详情页后定位。链接必须由 @{} 生成
@@ -175,38 +167,37 @@ const commentCountExpr =
       <a
         class="moment-action"
         href="#comment"
-        th:with={isDetail
-          ? undefined
-          : "momentUrl=@{/moments/{name}(name=${moment.metadata.name})}"}
+        th:with={
+          isDetail
+            ? undefined
+            : "momentUrl=@{/moments/{name}(name=${moment.metadata.name})}"
+        }
         th:href={isDetail ? undefined : "${momentUrl + '#comment'}"}
       >
-        <span
-          class="icon-[material-symbols--chat-bubble-outline-rounded] text-base"
-        ></span>
+        <span class="icon-[material-symbols--chat-bubble-outline-rounded] text-base"></span>
         <span th:text={commentCountExpr}>0</span>
       </a>
 
-      {
-        isDetail ? (
-          <a class="moment-action" th:href="@{/moments}">
-            <span class="icon-[material-symbols--chevron-left-rounded] text-base" />
-            <span th:text="#{common.back}">返回</span>
-          </a>
-        ) : (
-          <a
-            class="moment-action"
-            th:href="@{/moments/{name}(name=${moment.metadata.name})}"
-          >
-            <span th:text="#{common.more}">更多</span>
-            <span class="icon-[material-symbols--chevron-right-rounded] text-base" />
-          </a>
-        )
-      }
+      {isDetail ? (
+        <a class="moment-action" th:href="@{/moments}">
+          <span class="icon-[material-symbols--chevron-left-rounded] text-base" />
+          <span th:text="#{common.back}">返回</span>
+        </a>
+      ) : (
+        <a
+          class="moment-action"
+          th:href="@{/moments/{name}(name=${moment.metadata.name})}"
+        >
+          <span th:text="#{common.more}">更多</span>
+          <span class="icon-[material-symbols--chevron-right-rounded] text-base" />
+        </a>
+      )}
     </footer>
   </div>
 
   <!-- 右下角 bolt 水印：与页头水印同族，参数可调（components.css） -->
   <span
     class="moment-card-watermark icon-[material-symbols--bolt-outline-rounded]"
-    aria-hidden="true"></span>
+    aria-hidden="true"
+  ></span>
 </article>
