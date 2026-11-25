@@ -7,8 +7,6 @@
 //   banner-sync.ts——改任何一处必须同步其余
 export const BANNER_EXTEND_ROUNDING = 4;
 
-export const PAGE_SIZE = 8;
-
 export const LIGHT_MODE = "light",
   DARK_MODE = "dark",
   AUTO_MODE = "auto";
@@ -91,19 +89,6 @@ export const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
 // ⚠️ Layout.astro 内联覆盖到 <html>，改宽度必须同步 variables.css；
 // 三栏总宽（103rem）与 TOC 隐藏断点见 components.css
 export const PAGE_WIDTH = 84.5;
-
-// Banner 响应式常量
-export const BANNER_MIN_HEIGHT_PX = 180;
-export const BANNER_TABLET_BREAKPOINT = 768;
-export const BANNER_TITLE_MIN_SIZE_REM = 1.8;
-export const BANNER_TITLE_MAX_SIZE_REM = 3.5;
-export const BANNER_TITLE_VW_MULTIPLIER = 0.007;
-
-// 移动端副标题字号阶梯（断点 → rem）
-export const BANNER_SUBTITLE_480 = 1.0;
-export const BANNER_SUBTITLE_640 = 1.125;
-export const BANNER_SUBTITLE_767 = 1.25;
-export const BANNER_SUBTITLE_DEFAULT = 1.5;
 
 // Swup visit:end 恢复延迟（ms）
 export const SWUP_VISIT_END_DELAY = 200;

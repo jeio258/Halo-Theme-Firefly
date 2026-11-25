@@ -1,24 +1,12 @@
 // @ts-nocheck —— legacy 手写脚本迁入源码目录（保持 ES5 原样，不做类型改造）
 // 波浪 viewBox 动画
+import { getThemeConfig } from "./_theme-config";
+
 (function () {
   // 三选开关（styleSwitches.banner_wave）：disabled / 旧布尔 false 不启动；desktop_only +
-  // 触屏 → 隐藏容器并跳过动画。public/ 资产读不到 theme.config，从 #theme-config JSON 解析，
-  // 结果写入 window.__themeConfig 缓存（首个 parse 的写、后续复用）。
+  // 触屏 → 隐藏容器并跳过动画。配置统一由 _theme-config.ts 读取（含缓存与解析兜底）。
   var waveValue = null;
-  var waveCfg = window.__themeConfig;
-  if (waveCfg === undefined) {
-    var waveConfigEl = document.getElementById("theme-config");
-    if (waveConfigEl) {
-      try {
-        waveCfg = JSON.parse(
-          waveConfigEl.textContent || waveConfigEl.innerText,
-        );
-      } catch (e) {
-        waveCfg = null;
-      }
-      window.__themeConfig = waveCfg;
-    }
-  }
+  var waveCfg = getThemeConfig();
   if (waveCfg) {
     var waveSw = waveCfg.style && waveCfg.style.styleSwitches;
     if (waveSw) waveValue = waveSw.banner_wave;
