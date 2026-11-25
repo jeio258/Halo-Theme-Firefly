@@ -1,5 +1,6 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { pagedListThWith, pagedNavThWith } from "../utils/paged-list";
 import FilterTabs from "../components/control/FilterTabs.astro";
 import PageHeader from "../components/control/PageHeader.astro";
 ---
@@ -95,21 +96,17 @@ import PageHeader from "../components/control/PageHeader.astro";
        拆分后 th:with 挂在包装 div 上：头部卡（页头+池）与内容卡共用这些变量 -->
   <div
     th:remove="tag"
-    th:with="items=${theme.config?.extendPages?.timeline?.entries?.items},
-      edCount=${items != null ? #aggregates.sum(items.![type == 'education' ? 1 : 0]) : 0},
-      workCount=${items != null ? #aggregates.sum(items.![type == 'work' ? 1 : 0]) : 0},
-      projCount=${items != null ? #aggregates.sum(items.![type == 'project' ? 1 : 0]) : 0},
-      achCount=${items != null ? #aggregates.sum(items.![type == 'achievement' ? 1 : 0]) : 0},
-      pageSize=${theme.config?.extendPages?.timeline?.pageSize != null ? #conversions.convert(theme.config?.extendPages?.timeline?.pageSize, 'java.lang.Integer') : 10},
-      totalSize=${items != null ? #lists.size(items) : 0},
-      filteredCount=${#lists.contains(param.type, 'education') ? edCount : (#lists.contains(param.type, 'work') ? workCount : (#lists.contains(param.type, 'project') ? projCount : (#lists.contains(param.type, 'achievement') ? achCount : totalSize)))},
-      hasFilter=${not #lists.isEmpty(param.type)},
-      totalPages=${not hasFilter and pageSize > 0 ? (totalSize + pageSize - 1) / pageSize : 1},
-      rawPage=${param.page != null and param.page.length > 0 and param.page[0] matches '\d+' ? #conversions.convert(param.page[0], 'java.lang.Integer') : 1},
-      curPage=${rawPage > totalPages ? totalPages : (rawPage < 1 ? 1 : rawPage)},
-      startIndex=${(curPage - 1) * pageSize},
-      endIndex=${startIndex + pageSize > totalSize ? totalSize : startIndex + pageSize},
-      pagedItems=${not hasFilter and pageSize > 0 and totalSize > 0 ? items.subList(startIndex < 0 ? 0 : startIndex, endIndex > totalSize ? totalSize : endIndex) : items}"
+    th:with={pagedListThWith({
+      group: "timeline",
+      filterParam: "type",
+      field: "type",
+      counts: [
+        ["edCount", "education"],
+        ["workCount", "work"],
+        ["projCount", "project"],
+        ["achCount", "achievement"],
+      ],
+    })}
   >
     <!-- 头部卡：新版页头（modern，含图标水印）+ 胶囊池分组——氛围渐变由
          卡片级 .page-head-card 承载（页头与池之间无缝）；无数据时池区不渲染 -->
@@ -369,16 +366,7 @@ import PageHeader from "../components/control/PageHeader.astro";
         注意：th:if 先于同元素的 th:with 执行，故变量计算放在外层包装元素上；
         有筛选参数时 totalPages 恒为 1，分页自动隐藏（筛选视图展示全部匹配项） -->
   <div
-    th:with="items=${theme.config?.extendPages?.timeline?.entries?.items},
-      pageSize=${theme.config?.extendPages?.timeline?.pageSize != null ? #conversions.convert(theme.config?.extendPages?.timeline?.pageSize, 'java.lang.Integer') : 10},
-      totalSize=${items != null ? #lists.size(items) : 0},
-      hasFilter=${not #lists.isEmpty(param.type)},
-      totalPages=${not hasFilter and pageSize > 0 ? (totalSize + pageSize - 1) / pageSize : 1},
-      rawPage=${param.page != null and param.page.length > 0 and param.page[0] matches '\d+' ? #conversions.convert(param.page[0], 'java.lang.Integer') : 1},
-      curPage=${rawPage > totalPages ? totalPages : (rawPage < 1 ? 1 : rawPage)},
-      sep=${not #lists.isEmpty(param.type) ? '?type=' + param.type[0] + '&' : '?'},
-      windowStart=${curPage le 3 ? 1 : (curPage ge totalPages - 2 ? (totalPages - 4 gt 1 ? totalPages - 4 : 1) : curPage - 2)},
-      windowEnd=${curPage le 3 ? (totalPages lt 5 ? totalPages : 5) : (curPage ge totalPages - 2 ? totalPages : curPage + 2)}"
+    th:with={pagedNavThWith({ group: "timeline", filterParam: "type" })}
     th:remove="tag"
   >
     <nav

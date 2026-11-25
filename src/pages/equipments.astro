@@ -1,5 +1,5 @@
 ---
-import EquipmentPagination from "../components/EquipmentPagination.astro";
+import GroupPagination from "../components/control/GroupPagination.astro";
 import FilterTabs from "../components/control/FilterTabs.astro";
 import PageHeader from "../components/control/PageHeader.astro";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
@@ -146,7 +146,11 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
     </div>
   </section>
 
-  <EquipmentPagination context="equipments" class="mb-4 onload-animation" />
+  <GroupPagination
+    context="equipments"
+    pageUrlExpr={`currentGroup != null ? (pageNumber == 1 ? '/equipments?group=' + currentGroup : '/equipments/page/' + pageNumber + '?group=' + currentGroup) : (pageNumber == 1 ? '/equipments' : '/equipments/page/' + pageNumber)`}
+    class="mb-4 onload-animation"
+  />
 
   <!-- 胶囊池滑块（filter-seg.js）：定位 / 点击预移动 / 滚动渐隐。
        Swup 换页后由 ScriptsPlugin 重执行（脚本内 window 单例幂等） -->

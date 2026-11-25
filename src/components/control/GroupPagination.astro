@@ -1,22 +1,48 @@
 ---
+/**
+ * 分组列表分页（设备页 / 照片页共用）：窗口式页码 + 省略号 + 上下页。
+ *
+ * 两个调用方（equipments / photos）原先各有一份逐字相同的实现，唯一差异是
+ * 「第 N 页 URL 怎么拼」——设备页是用固定路径 + group 查询串，照片页是走
+ * photoUrl.list()。这里把该差异外提为 pageUrlExpr 参数，模板只保留一份。
+ *
+ * 约定：pageUrlExpr 传**裸 Thymeleaf 表达式**（不含 ${}），可用 pageNumber /
+ * currentGroup / pageSize 三个变量；页码 1 与末页的特殊分支复用同一表达式，
+ * 由表达式内部的 pageNumber 判断处理，调用方不必再写两份。
+ */
 interface Props {
+  /** 分页上下文变量名（Halo 注入，如 equipments / photos） */
   context?: string;
+  /** 第 N 页 URL 的裸 Thymeleaf 表达式 */
+  pageUrlExpr: string;
+  /** 追加到 th:with 的绑定（如照片页需要 pageSize），写在 targetUrl 之前 */
+  extraWith?: string;
   class?: string;
   style?: string;
 }
 
-const { context = "equipments", style } = Astro.props;
+const { context = "posts", pageUrlExpr, extraWith = "", style } = Astro.props;
 const className = Astro.props.class;
+
 const hasPages = `\${${context}.totalPages gt 1}`;
 const prevUrl = `@{\${${context}.prevUrl}}`;
 const nextUrl = `@{\${${context}.nextUrl}}`;
+
+// 页码窗口：当前页居中，两端各留 2 个，共最多 5 个
 const pageWindow = `
   currentPage=\${${context}.page},
   totalPages=\${${context}.totalPages},
   currentGroup=\${#lists.isEmpty(param.group) ? null : param.group[0]},
+  ${extraWith ? extraWith + "," : ""}
   windowStart=\${currentPage le 3 ? 1 : (currentPage ge totalPages - 2 ? (totalPages - 4 gt 1 ? totalPages - 4 : 1) : currentPage - 2)},
   windowEnd=\${currentPage le 3 ? (totalPages lt 5 ? totalPages : 5) : (currentPage ge totalPages - 2 ? totalPages : currentPage + 2)}
 `;
+
+/** 指定页码的 th:with：pageNumber 先绑定，targetUrl 才能引用它 */
+const pageWith = (pageExpr: string) =>
+  `pageNumber=${pageExpr}, targetUrl=\${${pageUrlExpr}}`;
+/** 循环体内页号来自 th:each，无需再绑 pageNumber */
+const loopWith = `targetUrl=\${${pageUrlExpr}}`;
 ---
 
 <nav
@@ -38,7 +64,7 @@ const pageWindow = `
   <div class="pagination-pages flex flex-row items-center rounded-lg bg-(--card-bg) font-bold text-neutral-700 dark:text-neutral-300">
     <a
       th:if="${windowStart gt 1}"
-      th:with="pageNumber=1, targetUrl=${currentGroup != null ? '/equipments?group=' + currentGroup : '/equipments'}"
+      th:with={pageWith("1")}
       th:href="@{${targetUrl}}"
       th:aria-label="#{pagination.page(${pageNumber})}"
       class="btn-card h-11 w-11 overflow-hidden rounded-lg active:scale-[0.85]"
@@ -47,7 +73,7 @@ const pageWindow = `
     </a>
     <a
       th:if="${windowStart == 3}"
-      th:with="pageNumber=2, targetUrl=${currentGroup != null ? '/equipments/page/' + pageNumber + '?group=' + currentGroup : '/equipments/page/' + pageNumber}"
+      th:with={pageWith("2")}
       th:href="@{${targetUrl}}"
       th:aria-label="#{pagination.page(${pageNumber})}"
       class="btn-card h-11 w-11 overflow-hidden rounded-lg active:scale-[0.85]"
@@ -72,7 +98,7 @@ const pageWindow = `
       </div>
       <a
         th:unless="${pageNumber == currentPage}"
-        th:with="targetUrl=${currentGroup != null ? (pageNumber == 1 ? '/equipments?group=' + currentGroup : '/equipments/page/' + pageNumber + '?group=' + currentGroup) : (pageNumber == 1 ? '/equipments' : '/equipments/page/' + pageNumber)}"
+        th:with={loopWith}
         th:href="@{${targetUrl}}"
         th:aria-label="#{pagination.page(${pageNumber})}"
         class="btn-card h-11 w-11 overflow-hidden rounded-lg active:scale-[0.85]"
@@ -88,7 +114,7 @@ const pageWindow = `
     ></span>
     <a
       th:if="${windowEnd == totalPages - 2}"
-      th:with="pageNumber=${totalPages - 1}, targetUrl=${currentGroup != null ? '/equipments/page/' + pageNumber + '?group=' + currentGroup : '/equipments/page/' + pageNumber}"
+      th:with={pageWith("${totalPages - 1}")}
       th:href="@{${targetUrl}}"
       th:aria-label="#{pagination.page(${pageNumber})}"
       class="btn-card h-11 w-11 overflow-hidden rounded-lg active:scale-[0.85]"
@@ -98,7 +124,7 @@ const pageWindow = `
     </a>
     <a
       th:if="${windowEnd lt totalPages}"
-      th:with="pageNumber=${totalPages}, targetUrl=${currentGroup != null ? '/equipments/page/' + pageNumber + '?group=' + currentGroup : '/equipments/page/' + pageNumber}"
+      th:with={pageWith("${totalPages}")}
       th:href="@{${targetUrl}}"
       th:aria-label="#{pagination.page(${pageNumber})}"
       class="btn-card h-11 w-11 overflow-hidden rounded-lg active:scale-[0.85]"

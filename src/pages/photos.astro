@@ -1,7 +1,7 @@
 ---
 import PhotoExifMeta from "../components/photos/PhotoExifMeta.astro";
 import PhotoI18n from "../components/photos/PhotoI18n.astro";
-import PhotoPagination from "../components/photos/PhotoPagination.astro";
+import GroupPagination from "../components/control/GroupPagination.astro";
 import FilterTabs from "../components/control/FilterTabs.astro";
 import PageHeader from "../components/control/PageHeader.astro";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
@@ -206,7 +206,12 @@ import "../styles/photos-gallery-lightbox.css";
     </div>
   </section>
 
-  <PhotoPagination context="photos" class="mb-4 onload-animation" />
+  <GroupPagination
+    context="photos"
+    pageUrlExpr={`photoUrl.list(currentGroup, pageNumber, pageSize)`}
+    extraWith={`pageSize=\${photos.size}`}
+    class="mb-4 onload-animation"
+  />
 
   <!-- 胶囊池滑块（filter-seg.js）：定位 / 点击预移动 / 滚动渐隐。
        Swup 换页后由 ScriptsPlugin 重执行（脚本内 window 单例幂等） -->
