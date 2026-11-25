@@ -149,9 +149,9 @@ interface Props {
 <script is:inline>
   (function () {
     var CLOSED_KEY = "ethereal-welcome-closed-v1";
-    var IP_CACHE_KEY = "weather_ip_cache";
-    var IP_CACHE_TTL = 4 * 60 * 60 * 1000; // 与天气小组件一致：IP 定位缓存 4 小时
-    var API_BASE = "https://apis.map.qq.com/ws";
+    // JSONP 通道与 IP 定位缓存由 Layout 注入的 __etherealTencent 提供，
+    // 与天气小组件共用同一份实现与同一个 sessionStorage key
+    var tencent = window.__etherealTencent || null;
 
     function getThemeConfig() {
       // 读/写 window.__themeConfig 缓存（与 scripts/assets/_theme-config.ts
@@ -273,18 +273,8 @@ interface Props {
 
     // 读取天气 IP 缓存（含完整 ad_info 的新格式；旧格式只有 adcode 则视为无文本）
     function getCachedAdInfo() {
-      try {
-        var raw = sessionStorage.getItem(IP_CACHE_KEY);
-        if (!raw) return null;
-        var d = JSON.parse(raw);
-        if (Date.now() - d.t > IP_CACHE_TTL) {
-          sessionStorage.removeItem(IP_CACHE_KEY);
-          return null;
-        }
-        return d.ad_info || null;
-      } catch (e) {
-        return null;
-      }
+      var d = tencent ? tencent.readIp() : null;
+      return (d && d.ad_info) || null;
     }
 
     // 四级拼接：国家 + 省 + 市 + 区县，去重（直辖市 province/city 相同）并过滤空值
@@ -298,37 +288,11 @@ interface Props {
       return parts.join("");
     }
 
-    // JSONP 请求（腾讯位置服务 API 无 CORS 头，浏览器 fetch 会被拦截，JSONP 是唯一可行通道）
-    var _cbIdx = 0;
+    // JSONP 通道来自 Layout 注入的 __etherealTencent（与天气小组件共用一份实现）
     function jsonp(url) {
-      return new Promise(function (resolve, reject) {
-        var cbName = "__welcome_tencent_cb_" + ++_cbIdx;
-        var sep = url.indexOf("?") === -1 ? "?" : "&";
-        var script = document.createElement("script");
-        script.src = url + sep + "callback=" + cbName;
-        script.onerror = function () {
-          reject(new Error("JSONP request failed"));
-          cleanup();
-        };
-        var timer = setTimeout(function () {
-          reject(new Error("JSONP timeout"));
-          cleanup();
-        }, 10000);
-        function cleanup() {
-          clearTimeout(timer);
-          try {
-            delete window[cbName];
-          } catch (e) {
-            window[cbName] = undefined;
-          }
-          if (script.parentNode) script.parentNode.removeChild(script);
-        }
-        window[cbName] = function (data) {
-          resolve(data);
-          cleanup();
-        };
-        document.head.appendChild(script);
-      });
+      return tencent
+        ? tencent.jsonp(url)
+        : Promise.reject(new Error("tencent helper unavailable"));
     }
 
     // 请求 IP 定位：成功后更新文案并回写天气缓存（adcode + ad_info），
@@ -336,22 +300,13 @@ interface Props {
     function fetchLocation() {
       var key = getTencentKey();
       if (!key) return;
-      jsonp(API_BASE + "/location/v1/ip?key=" + key + "&output=jsonp")
+      jsonp(tencent.base + "/location/v1/ip?key=" + key + "&output=jsonp")
         .then(function (data) {
           if (data && data.status === 0 && data.result && data.result.ad_info) {
             var info = data.result.ad_info;
             var text = formatLocation(info);
             if (text) applyLocation(text);
-            try {
-              sessionStorage.setItem(
-                IP_CACHE_KEY,
-                JSON.stringify({
-                  adcode: String(info.adcode || ""),
-                  ad_info: info,
-                  t: Date.now(),
-                }),
-              );
-            } catch (e) {}
+            if (tencent) tencent.writeIp(info.adcode, info);
           }
         })
         .catch(function () {

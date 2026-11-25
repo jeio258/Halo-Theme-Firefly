@@ -655,10 +655,11 @@ const {
     // 随机钓鱼 - 点击按钮鱼钩摇摆 1.5 秒后随机跳转朋友圈文章
     // 放到 swup-container 外部 + 事件委托，保证直接访问和 Swup 导航都生效
     (function () {
+      // i18n 取词：Layout.astro 在 head 无条件注入 window.__etherealI18n（单一来源）
       var t =
         window.__etherealI18n ||
-        function (_key, fallback) {
-          return fallback;
+        function (_k, fb) {
+          return fb;
         };
       var SPIN_DELAY = 1500; // 摇摆等待时长（ms）
       var spinning = false; // 防止重复点击

@@ -427,11 +427,6 @@ import { Icon } from "astro-icon/components";
   var TOC_POPUP_MAX_VH = 0.45;
   var TOC_POPUP_ANIM_MS = 200;
 
-  // i18n 兜底：无 window.__etherealI18n 时原样返回 fallback
-  var __tocI18nFallback = function (key, fallback) {
-    return fallback;
-  };
-
   // 展开/收起时切换按钮图标（目录 ↔ 关闭）并同步无障碍标签
   function syncTocBtnState(open) {
     var btn = getTocBtn();
@@ -441,7 +436,11 @@ import { Icon } from "astro-icon/components";
     if (!inner) return;
     // aria-expanded 必须挂在 <button> 上：外层 #back-to-toc-btn 无 role，会违反 aria-allowed-attr
     inner.setAttribute("aria-expanded", open ? "true" : "false");
-    var t = window.__etherealI18n || __tocI18nFallback;
+    var t =
+      window.__etherealI18n ||
+      function (_k, fb) {
+        return fb;
+      };
     inner.setAttribute(
       "aria-label",
       open

@@ -10,6 +10,8 @@ export interface ThemeConfig {
   footer: Footer;
   links: Links;
   external_link: ExternalLink;
+  /** 杂项设置（settings.yaml 的 misc 分组）：认证与 SEO，模板直读 theme.config?.misc?.xxx */
+  misc?: Misc;
 }
 
 /** 扩展页面设置：朋友圈 / 时间轴 / 技能 / 关于页面（后台未配置的子组可能缺失，均视为可选） */
@@ -693,10 +695,10 @@ export interface SidebarProfileStatusText {
 /**
  * 侧边栏条目。除「自定义HTML」外，条目只承载「小组件 + 吸顶」两项，
  * 各小组件的详细配置见 SidebarSiteStats / SidebarWeather / SidebarHitokoto /
- * SidebarMusic / SidebarSchedule。
+ * SidebarMusic / SidebarSchedule / SidebarCalendar。
  */
 export interface Widget {
-  /** 小组件标识：profile / announcement / popular-posts / categories / tag / music / hitokoto / site-stats / weather / schedule / html */
+  /** 小组件标识：profile / announcement / popular-posts / categories / tag / music / hitokoto / site-stats / weather / schedule / calendar / html */
   value: string;
   /**
    * 是否吸顶（默认 true）。
@@ -897,6 +899,24 @@ export interface ExternalLink {
   avatar?: string;
   open_new_window?: boolean;
   whitelist?: string;
+}
+
+// ========== 杂项设置（misc 分组）==========
+export interface Misc {
+  /** 认证设置：登录界面走主题界面还是 Halo 默认（public/gateway_fragments 直接读取） */
+  auth?: MiscAuth;
+  /** SEO 设置 */
+  seo?: MiscSeo;
+}
+
+export interface MiscAuth {
+  /** 登录界面：theme 主题认证界面 / halo Halo 默认 */
+  loginPage?: string;
+}
+
+export interface MiscSeo {
+  /** 输出 canonical 与社交分享标签，缺省 true（已由插件提供同类标签的站点可关闭） */
+  enable_metadata?: boolean;
 }
 
 export type LIGHT_DARK_MODE =

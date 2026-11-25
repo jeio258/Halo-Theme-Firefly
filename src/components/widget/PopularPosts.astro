@@ -49,10 +49,10 @@ const listId = `${instanceId}-list`;
     var abortKey =
       instanceId + ":" + Array.prototype.indexOf.call(sameIdLists, container);
 
-    // 客户端 i18n：复用 Layout.astro 注入的全局助手（缺失时退化为回退文案）
+    // i18n 取词：Layout.astro 在 head 无条件注入 window.__etherealI18n（单一来源）
     var t =
       window.__etherealI18n ||
-      function (_key, fb) {
+      function (_k, fb) {
         return fb;
       };
 

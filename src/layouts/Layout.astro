@@ -94,12 +94,9 @@ const i18nInlineScript = `<script th:inline="javascript">
     "widget.music.progress": \`[(#{widget.music.progress})]\`,
     "widget.music.noCover": \`[(#{widget.music.noCover})]\`,
     "widget.music.cover": \`[(#{widget.music.cover})]\`,
-    "widget.weather.loading": \`[(#{widget.weather.loading})]\`,
     "widget.weather.error": \`[(#{widget.weather.error})]\`,
-    "widget.weather.noKey": \`[(#{widget.weather.noKey})]\`,
-    "widget.weather.updated": \`[(#{widget.weather.updated})]\`,
+    "widget.weather.dateFormat": \`[(#{widget.weather.dateFormat})]\`,
     "widget.weather.humidity": \`[(#{widget.weather.humidity})]\`,
-    "widget.weather.busy": \`[(#{widget.weather.busy})]\`,
     "widget.weather.fetching": \`[(#{widget.weather.fetching})]\`,
     "widget.weather.gps": \`[(#{widget.weather.gps})]\`,
     "widget.weather.gpsLocating": \`[(#{widget.weather.gpsLocating})]\`,
@@ -308,6 +305,76 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
           document.cookie =
             "language=" + lang + "; path=/; max-age=31536000; samesite=Lax";
         };
+        // 腾讯位置服务共享能力：JSONP 通道与 IP 定位缓存（adcode + ad_info）由
+        // 天气小组件与欢迎弹窗共用——两者原本各写一份逐行相同的实现，且共用同一个
+        // sessionStorage key，收敛到此才能保证读写语义（TTL / 过期清理）一致。
+        // 腾讯该 API 无 CORS 头，浏览器 fetch 会被拦，JSONP 是纯前端唯一通道。
+        var TENCENT_BASE = "https://apis.map.qq.com/ws";
+        var TENCENT_IP_KEY = "weather_ip_cache";
+        var TENCENT_IP_TTL = 4 * 60 * 60 * 1000;
+        var jsonpSeq = 0;
+        window.__etherealTencent = {
+          base: TENCENT_BASE,
+          ipKey: TENCENT_IP_KEY,
+          jsonp: function (url) {
+            return new Promise(function (resolve, reject) {
+              var cbName = "__ethereal_tencent_cb_" + ++jsonpSeq;
+              var sep = url.indexOf("?") === -1 ? "?" : "&";
+              var script = document.createElement("script");
+              var timer;
+              function cleanup() {
+                clearTimeout(timer);
+                try {
+                  delete window[cbName];
+                } catch (e) {
+                  window[cbName] = undefined;
+                }
+                if (script.parentNode) script.parentNode.removeChild(script);
+              }
+              timer = setTimeout(function () {
+                reject(new Error("JSONP timeout"));
+                cleanup();
+              }, 10000);
+              script.onerror = function () {
+                reject(new Error("JSONP request failed"));
+                cleanup();
+              };
+              window[cbName] = function (data) {
+                resolve(data);
+                cleanup();
+              };
+              script.src = url + sep + "callback=" + cbName;
+              document.head.appendChild(script);
+            });
+          },
+          // 过期项顺手清掉，避免 sessionStorage 里堆无效条目
+          readIp: function () {
+            try {
+              var raw = sessionStorage.getItem(TENCENT_IP_KEY);
+              if (!raw) return null;
+              var d = JSON.parse(raw);
+              if (Date.now() - d.t > TENCENT_IP_TTL) {
+                sessionStorage.removeItem(TENCENT_IP_KEY);
+                return null;
+              }
+              return d;
+            } catch (e) {
+              return null;
+            }
+          },
+          writeIp: function (adcode, adInfo) {
+            try {
+              sessionStorage.setItem(
+                TENCENT_IP_KEY,
+                JSON.stringify({
+                  adcode: String(adcode || ""),
+                  ad_info: adInfo || null,
+                  t: Date.now(),
+                }),
+              );
+            } catch (e) {}
+          },
+        };
         // 大数格式化：中文站以「万」为单位（÷10000），英文站以 k 为单位（÷1000）
         window.__etherealBigNum = function (num, unitKey, unitFallback) {
           var unit = read(unitKey, unitFallback || "k");
@@ -514,6 +581,28 @@ const themeSettingScript = `<script type="application/json" id="theme-config" th
         }
       })();
     </script>
+    <!-- 外部图片域预连接：跨域图片要独立走 DNS+TCP+TLS（实测某图床 TLS 达 1.22s），
+         preconnect 让连接与 HTML 解析并行建立，banner（常为 LCP）收益最直接。
+         只对绝对地址生效——相对路径与主题静态资源同源，无需预连接。
+         origin 用「scheme + :// + host」拼，避免依赖 Thymeleaf 未提供的 URL 工具 -->
+    <link
+      rel="preconnect"
+      th:if="${not #strings.isEmpty(theme.config?.style?.bannerStyle?.src)
+        and (#strings.startsWith(theme.config?.style?.bannerStyle?.src, 'http://')
+          or #strings.startsWith(theme.config?.style?.bannerStyle?.src, 'https://'))}"
+      th:with="imgSrc=${theme.config?.style?.bannerStyle?.src}"
+      th:href="${#strings.substringBefore(imgSrc, '://') + '://'
+        + #strings.substringBefore(#strings.substringAfter(imgSrc, '://'), '/')}"
+    />
+    <link
+      rel="preconnect"
+      th:if="${not #strings.isEmpty(theme.config?.sidebar?.profile?.avatar)
+        and (#strings.startsWith(theme.config?.sidebar?.profile?.avatar, 'http://')
+          or #strings.startsWith(theme.config?.sidebar?.profile?.avatar, 'https://'))}"
+      th:with="avatarSrc=${theme.config?.sidebar?.profile?.avatar}"
+      th:href="${#strings.substringBefore(avatarSrc, '://') + '://'
+        + #strings.substringBefore(#strings.substringAfter(avatarSrc, '://'), '/')}"
+    />
     <!-- 仅当启用外部字体时才预连接常用字体 CDN -->
     <link
       rel="preconnect"

@@ -8,8 +8,9 @@
 //   bigdatacloud 反地理编码（localStorage 7 天缓存避免重复弹窗）
 // - 后台配置（sidebar.weather 分组）：city 城市名（留空=IP 定位）、gps 精确定位按钮开关；
 //   tencent_key 同时供欢迎弹窗 IP 定位复用（共享 weather_ip_cache）
-// - 星期/月份文案复用 calendar.* 词条（与站点日历单一来源）；实例作用域取法同其他小组件，
-//   双实例各自一份时钟（card.__wxTimer 去重，元素离 DOM 自停）
+// - 星期/月份文案复用 widget.calendar.* 词条（与站点日历单一来源）；日期行的单位、
+//   语序与分隔符由 widget.weather.dateFormat 词条决定，不在代码里写死中文语序
+// - 实例作用域取法同其他小组件，双实例各自一份时钟（card.__wxTimer 去重，元素离 DOM 自停）
 import WidgetLayout from "./WidgetLayout.astro";
 
 interface Props {
@@ -41,7 +42,6 @@ const className = Astro.props.class;
   </div>
 
   <div
-    id="weather-content"
     th:attr="data-city=${theme.config?.sidebar?.weather?.city},
       data-tencent-key=${theme.config?.sidebar?.weather?.tencent_key}"
     class="wx-card px-3 py-1"
@@ -129,19 +129,18 @@ const className = Astro.props.class;
     var card = widgetRoot.querySelector(".wx-card");
     if (!card) return;
 
+    // i18n 取词：Layout.astro 在 head 无条件注入 window.__etherealI18n（单一来源）
     var t =
       window.__etherealI18n ||
-      function (_key, fb) {
+      function (_k, fb) {
         return fb;
       };
-    // 语言标签归一化：zh* 用「M月D日 周X」，其余用「Mon D, X」
     var langTag = (
       window.__etherealLangTag ||
       function () {
         return "en";
       }
     )(document.documentElement.lang);
-    var isCJK = langTag !== "en";
 
     var elIcon = card.querySelector('[data-role="icon"]');
     var elTemp = card.querySelector('[data-role="temp"]');
@@ -153,8 +152,82 @@ const className = Astro.props.class;
     var gpsBtn = card.querySelector('[data-role="gps"]');
     var gpsTxt = gpsBtn ? gpsBtn.querySelector('[data-role="gpstext"]') : null;
 
-    // ---- 秒级时钟（星期/月份复用 calendar.* 词条，与站点日历单一来源）----
-    var WK = [
+    // 后台配置：城市名（留空=按 IP / GPS 定位）与腾讯 Key（留空=免 Key 链路）。
+    // 必须在此处读取——fail()（失败态回填城市）与 GPS 按钮显隐都要用，
+    // 放到文件末尾会因 var 提升读到 undefined。
+    var cityName = (card.getAttribute("data-city") || "").trim();
+    var tencentKey = (card.getAttribute("data-tencent-key") || "").trim();
+
+    // ---- 常量 ----
+    // 免 Key 链路（open-meteo / IP 定位）
+    var URL_FORECAST = "https://api.open-meteo.com/v1/forecast";
+    var URL_GEOCODE = "https://geocoding-api.open-meteo.com/v1/search";
+    var URL_IP_SB = "https://api.ip.sb/geoip";
+    var URL_IPWHO = "https://ipwho.is/";
+    var URL_REVERSE =
+      "https://api.bigdatacloud.net/data/reverse-geocode-client";
+    var WX_CACHE_KEY = "weather_cache"; // sessionStorage，会话级
+    var WX_CACHE_TTL = 30 * 60 * 1000;
+    var GPS_KEY = "weather_gps_cache"; // localStorage，7 天避免重复弹窗
+    var GPS_TTL = 7 * 24 * 3600 * 1000;
+    var CLOCK_TICK = 1000;
+    var GPS_TIMEOUT = 10000;
+    var GPS_MAX_AGE = 600000;
+    var GPS_HINT_RESET = 2500;
+    // 腾讯链路（tencent_key 已配置时优先）：JSONP 通道与 IP 缓存由 Layout 注入的
+    // __etherealTencent 提供，与欢迎弹窗共用同一份实现与同一个 sessionStorage key
+    var tencent = window.__etherealTencent || null;
+
+    // ---- 缓存读写（三处同构，统一走 readStore / writeStore）----
+    // ttl 为 0 表示不校验时间；过期项顺手清掉，避免 sessionStorage 里堆无效条目。
+    function readStore(store, key, ttl) {
+      try {
+        var raw = store.getItem(key);
+        if (!raw) return null;
+        var o = JSON.parse(raw);
+        if (ttl && Date.now() - o.t > ttl) {
+          store.removeItem(key);
+          return null;
+        }
+        return o;
+      } catch (e) {
+        return null;
+      }
+    }
+    function writeStore(store, key, value) {
+      try {
+        store.setItem(key, JSON.stringify(value));
+      } catch (e) {}
+    }
+    function getCache() {
+      var o = readStore(sessionStorage, WX_CACHE_KEY, WX_CACHE_TTL);
+      // code 缺失说明是旧格式残留，按无缓存处理
+      return o && o.data && o.data.code !== undefined ? o.data : null;
+    }
+    function setCache(d) {
+      writeStore(sessionStorage, WX_CACHE_KEY, { data: d, t: Date.now() });
+    }
+    function getGpsCache() {
+      var o = readStore(localStorage, GPS_KEY, GPS_TTL);
+      return o && o.lat != null ? o : null;
+    }
+    function setGpsCache(lat, lon, name) {
+      writeStore(localStorage, GPS_KEY, {
+        lat: lat,
+        lon: lon,
+        name: name,
+        t: Date.now(),
+      });
+    }
+    function getCachedAdcode() {
+      var o = tencent ? tencent.readIp() : null;
+      return o && o.adcode ? o.adcode : null;
+    }
+
+    // ---- 秒级时钟 ----
+    // 星期与月份名走 widget.calendar.*，与站点日历同源；日期行的语序由
+    // widget.weather.dateFormat 决定，避免把中文语序写死在代码里。
+    var WEEK_KEYS = [
       "sunday",
       "monday",
       "tuesday",
@@ -162,13 +235,8 @@ const className = Astro.props.class;
       "thursday",
       "friday",
       "saturday",
-    ].map(function (k, i) {
-      return t(
-        "widget.calendar." + k,
-        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i],
-      );
-    });
-    var MON = [
+    ];
+    var MONTH_KEYS = [
       "january",
       "february",
       "march",
@@ -181,28 +249,44 @@ const className = Astro.props.class;
       "october",
       "november",
       "december",
-    ].map(function (k, i) {
-      return t(
-        "widget.calendar." + k,
-        [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ][i],
-      );
+    ];
+    var WEEK_FB = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var MONTH_FB = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    var WEEK = WEEK_KEYS.map(function (k, i) {
+      return t("widget.calendar." + k, WEEK_FB[i]);
     });
+    var MONTH = MONTH_KEYS.map(function (k, i) {
+      return t("widget.calendar." + k, MONTH_FB[i]);
+    });
+    var cjk = /^zh/i.test(langTag);
+
     function pad(n) {
       return n < 10 ? "0" + n : "" + n;
     }
+    // 日期行的单位、顺序与分隔符全部由 widget.weather.dateFormat 决定
+    // （zh 为「{0}月{1}日 周{2}」，其他语言为「{0} {1}, {2}」），
+    // 语序差异靠词条重排而非代码分支；{0} 在 zh 下是数字、其他语言是月份全名。
+    function formatDate(d) {
+      var m = d.getMonth();
+      return t("widget.weather.dateFormat", "{0} {1}, {2}")
+        .replace("{0}", cjk ? String(m + 1) : MONTH[m])
+        .replace("{1}", String(d.getDate()))
+        .replace("{2}", WEEK[d.getDay()]);
+    }
+
     // 定时器挂在 card 上：脚本可能被 SwupScriptsPlugin 重执行，先清旧表防双表；
     // 元素离开 DOM（侧栏重建）时自停，不泄漏
     function tickClock() {
@@ -218,63 +302,14 @@ const className = Astro.props.class;
           pad(d.getMinutes()) +
           ":" +
           pad(d.getSeconds());
-      if (elDate)
-        elDate.textContent = isCJK
-          ? d.getMonth() + 1 + "月" + d.getDate() + "日 周" + WK[d.getDay()]
-          : MON[d.getMonth()] + " " + d.getDate() + ", " + WK[d.getDay()];
+      if (elDate) elDate.textContent = formatDate(d);
     }
     if (card.__wxTimer) clearInterval(card.__wxTimer);
     tickClock();
-    card.__wxTimer = setInterval(tickClock, 1000);
+    card.__wxTimer = setInterval(tickClock, CLOCK_TICK);
 
-    // ---- 天气（免 Key：open-meteo；城市留空走 IP 定位 / GPS 缓存）----
-    var WX_CACHE_KEY = "weather_cache"; // 沿用既有键（sessionStorage，会话级）
-    var WX_CACHE_TTL = 30 * 60 * 1000; // 天气缓存 30 分钟
-    var GPS_KEY = "weather_gps_cache";
-    var GPS_TTL = 7 * 24 * 3600 * 1000; // GPS 定位 7 天有效，避免重复弹窗
-
-    function getCache() {
-      try {
-        var raw = sessionStorage.getItem(WX_CACHE_KEY);
-        if (!raw) return null;
-        var o = JSON.parse(raw);
-        if (
-          o &&
-          o.data &&
-          o.data.code !== undefined &&
-          Date.now() - o.timestamp < WX_CACHE_TTL
-        )
-          return o.data;
-        return null;
-      } catch (e) {
-        return null;
-      }
-    }
-    function setCache(d) {
-      try {
-        sessionStorage.setItem(
-          WX_CACHE_KEY,
-          JSON.stringify({ data: d, timestamp: Date.now() }),
-        );
-      } catch (e) {}
-    }
-    function getGpsCache() {
-      try {
-        var o = JSON.parse(localStorage.getItem(GPS_KEY) || "null");
-        if (o && o.lat != null && Date.now() - o.t < GPS_TTL) return o;
-      } catch (e) {}
-      return null;
-    }
-    function setGpsCache(lat, lon, name) {
-      try {
-        localStorage.setItem(
-          GPS_KEY,
-          JSON.stringify({ lat: lat, lon: lon, name: name, t: Date.now() }),
-        );
-      } catch (e) {}
-    }
-
-    // WMO 码 → i18n 状况键（映射口径同 moesora：51-57 毛毛雨 / 61-67 雨 / 71-77 雪 / 80-82 阵雨 / 95+ 雷雨）
+    // ---- 天气：WMO 码 → 状况词条 / 图标 ----
+    // 51-57 毛毛雨 / 61-67 雨 / 71-77 雪 / 80-82 阵雨 / 95+ 雷雨
     function wmoCondKey(code) {
       code = +code;
       if (code === 0) return "widget.weather.condSunny";
@@ -290,6 +325,8 @@ const className = Astro.props.class;
       if (code >= 95) return "widget.weather.condThunder";
       return "widget.weather.condCloudy";
     }
+    // 英文兜底只在 i18n 助手缺失时才会用到（t() 的 fb 参数），
+    // 与 i18n 里的英文词条同源，不再单独维护第二份语义。
     function condFallback(key) {
       var fb = {
         "widget.weather.condSunny": "Sunny",
@@ -303,9 +340,8 @@ const className = Astro.props.class;
         "widget.weather.condSnow": "Snow",
         "widget.weather.condThunder": "Thunderstorm",
       };
-      return fb[key] || "Cloudy";
+      return fb[key] || fb["widget.weather.condCloudy"];
     }
-    // WMO 码 → 图标（沿用本项目 mdi 图标体系；0 号按昼夜分太阳/月亮）
     function wmoIcon(code, day) {
       code = +code;
       if (code === 0) return day ? "mdi--weather-sunny" : "mdi--weather-night";
@@ -322,56 +358,61 @@ const className = Astro.props.class;
       return "mdi--weather-cloudy";
     }
 
-    function render(d) {
+    // ---- 渲染 ----
+    // 两条链路（open-meteo / 腾讯）统一先归一成 weather 对象再进这里，
+    // 不再各写一份渲染逻辑；链路特有的补充文案由调用方通过 aux 覆盖。
+    var TEMP_CLS =
+      "text-3xl font-extrabold leading-none tabular-nums text-neutral-900 dark:text-neutral-100";
+    var TEMP_CLS_FAIL =
+      "text-2xl font-extrabold leading-none tabular-nums text-neutral-400 dark:text-neutral-500";
+
+    function render(w) {
       if (elIcon)
         elIcon.innerHTML =
           '<span class="icon-[' +
-          wmoIcon(d.code, d.day) +
+          wmoIcon(w.code, w.day) +
           '] text-4xl"></span>';
       if (elTemp) {
-        elTemp.textContent = Math.round(d.temp) + "°";
-        elTemp.className =
-          "text-3xl font-extrabold leading-none tabular-nums text-neutral-900 dark:text-neutral-100";
+        elTemp.textContent = Math.round(w.temp) + "°";
+        elTemp.className = TEMP_CLS;
       }
-      if (elCond)
-        elCond.textContent = t(
-          wmoCondKey(d.code),
-          condFallback(wmoCondKey(d.code)),
-        );
-      if (elCity) elCity.textContent = d.name || "--";
+      if (elCond) {
+        var key = wmoCondKey(w.code);
+        elCond.textContent = t(key, condFallback(key));
+      }
+      if (elCity) elCity.textContent = w.name || "--";
       if (elAux)
         elAux.textContent =
           t("widget.weather.wind", "风") +
           " " +
-          Math.round(d.wind || 0) +
+          Math.round(w.wind || 0) +
           " km/h · " +
           t("widget.weather.humidity", "湿度") +
           " " +
-          Math.round(d.hum || 0) +
+          Math.round(w.hum || 0) +
           "%";
     }
 
+    // 失败态：城市保留后台配置值（IP/GPS 失败时也至少显示配置的城市名），其余清空
     function fail(msg) {
       if (elIcon)
         elIcon.innerHTML =
           '<span class="icon-[mdi--weather-cloudy] text-3xl"></span>';
       if (elTemp) {
         elTemp.textContent = "--°";
-        // 失败态：温度灰化缩小（同 moesora is-fail）
-        elTemp.className =
-          "text-2xl font-extrabold leading-none tabular-nums text-neutral-400 dark:text-neutral-500";
+        elTemp.className = TEMP_CLS_FAIL;
       }
       if (elCond)
         elCond.textContent = msg || t("widget.weather.error", "天气加载失败");
-      if (elCity)
-        elCity.textContent =
-          (card.getAttribute("data-city") || "").trim() || "--";
+      if (elCity) elCity.textContent = cityName || "--";
       if (elAux) elAux.textContent = "";
     }
 
+    // ---- 免 Key 链路：城市名 geocode → 实况 / GPS 缓存 / IP 定位 ----
     function fetchWx(lat, lon, name) {
       fetch(
-        "https://api.open-meteo.com/v1/forecast?latitude=" +
+        URL_FORECAST +
+          "?latitude=" +
           lat +
           "&longitude=" +
           lon +
@@ -383,7 +424,7 @@ const className = Astro.props.class;
         .then(function (j) {
           var c = j && j.current;
           if (!c) return fail();
-          var d = {
+          var w = {
             name: name,
             code: c.weather_code,
             temp: c.temperature_2m,
@@ -391,93 +432,120 @@ const className = Astro.props.class;
             hum: c.relative_humidity_2m,
             day: c.is_day !== 0,
           };
-          setCache(d);
-          render(d);
+          setCache(w);
+          render(w);
         })
         .catch(function () {
           fail();
         });
     }
 
-    // 城市名 → 中文 geocode → 实况
-    function geocodeCity(city) {
+    // 城市名 / 英文地名 → open-meteo geocoding。
+    // onMiss 让两处调用方各自决定「查不到」的语义：配置城市 → 提示未找到；
+    // IP 定位回译 → 用原名兜底继续取天气。
+    function geocode(name, lang, onHit, onMiss) {
       fetch(
-        "https://geocoding-api.open-meteo.com/v1/search?name=" +
-          encodeURIComponent(city) +
-          "&count=1&language=zh&format=json",
+        URL_GEOCODE +
+          "?name=" +
+          encodeURIComponent(name) +
+          "&count=1&language=" +
+          lang +
+          "&format=json",
       )
         .then(function (r) {
           return r.json();
         })
         .then(function (j) {
           var g = j && j.results && j.results[0];
-          if (!g) return fail(t("widget.weather.noCity", "未找到该城市"));
-          fetchWx(g.latitude, g.longitude, g.name || city);
+          if (!g) return onMiss();
+          onHit(g);
         })
         .catch(function () {
-          fail();
+          onMiss();
         });
     }
 
-    // 英文城市名回译中文（IP 定位返回的常为英文）；查不到直接用原名
+    function geocodeCity(name) {
+      geocode(
+        name,
+        "zh",
+        function (g) {
+          fetchWx(g.latitude, g.longitude, g.name || name);
+        },
+        function () {
+          fail(t("widget.weather.noCity", "未找到该城市"));
+        },
+      );
+    }
+
+    // IP 定位返回的常为英文地名，回译中文后再取天气；查不到直接用原名
     function resolveZh(enName, lat, lon) {
       var localName = t("widget.weather.currentLoc", "当前位置");
-      if (!enName) {
-        fetchWx(lat, lon, localName);
-        return;
-      }
-      fetch(
-        "https://geocoding-api.open-meteo.com/v1/search?name=" +
-          encodeURIComponent(enName) +
-          "&count=1&language=zh&format=json",
-      )
-        .then(function (r) {
-          return r.json();
-        })
-        .then(function (j) {
-          var g = j && j.results && j.results[0];
-          fetchWx(lat, lon, (g && g.name) || enName);
-        })
-        .catch(function () {
+      if (!enName) return fetchWx(lat, lon, localName);
+      geocode(
+        enName,
+        "zh",
+        function (g) {
+          fetchWx(lat, lon, g.name || enName);
+        },
+        function () {
           fetchWx(lat, lon, enName);
-        });
-    }
-    // IP 定位双源兜底（均免 Key）：api.ip.sb 优先，ipwho.is 兜底
-    function ipFallback() {
-      var locFailMsg = t(
-        "widget.weather.locFail",
-        "定位失败，请在设置中填写城市",
+        },
       );
-      fetch("https://ipwho.is/")
-        .then(function (r) {
-          return r.json();
-        })
-        .then(function (j) {
-          if (!j || !j.success || j.latitude == null) return fail(locFailMsg);
-          resolveZh(j.city || j.region || "", j.latitude, j.longitude);
-        })
-        .catch(function () {
-          fail(locFailMsg);
-        });
-    }
-    function ipGeo() {
-      fetch("https://api.ip.sb/geoip")
-        .then(function (r) {
-          return r.json();
-        })
-        .then(function (j) {
-          if (!j || j.latitude == null) return ipFallback();
-          resolveZh(j.city || j.region || "", j.latitude, j.longitude);
-        })
-        .catch(ipFallback);
     }
 
-    // ---- GPS 精确定位（后台 gps 开关开启才渲染按钮；城市留空时显示，点按取浏览器定位）----
+    // IP 定位双源（均免 Key）：api.ip.sb 优先，ipwho.is 兜底
+    function ipFrom(url, validate, onFail) {
+      fetch(url)
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (j) {
+          if (!validate(j)) return onFail();
+          resolveZh(j.city || j.region || "", j.latitude, j.longitude);
+        })
+        .catch(onFail);
+    }
+    function ipFallback() {
+      ipFrom(
+        URL_IPWHO,
+        function (j) {
+          return j && j.success && j.latitude != null;
+        },
+        function () {
+          fail(t("widget.weather.locFail", "定位失败，请在设置中填写城市"));
+        },
+      );
+    }
+    function ipGeo() {
+      ipFrom(
+        URL_IP_SB,
+        function (j) {
+          return j && j.latitude != null;
+        },
+        ipFallback,
+      );
+    }
+
+    function openMeteoChain(name) {
+      if (name) return geocodeCity(name);
+      var gc = getGpsCache();
+      if (gc)
+        return fetchWx(
+          gc.lat,
+          gc.lon,
+          gc.name || t("widget.weather.currentLoc", "当前位置"),
+        );
+      ipGeo();
+    }
+
+    // ---- GPS 精确定位（浏览器定位 + bigdatacloud 反地理编码）----
+    // 仅在后台开启 gps 且未配置城市时显示按钮（配置了城市说明用户要固定城市）。
     if (gpsBtn) {
-      var citySet = !!(card.getAttribute("data-city") || "").trim();
-      gpsBtn.style.display = citySet ? "none" : "";
+      var hasCity = !!cityName;
+      gpsBtn.style.display = hasCity ? "none" : "";
       gpsBtn.addEventListener("click", function () {
-        var gpsLabel = t("widget.weather.gps", "使用精确定位");
+        var label = t("widget.weather.gps", "使用精确定位");
         if (!navigator.geolocation) {
           if (gpsTxt)
             gpsTxt.textContent = t(
@@ -491,128 +559,64 @@ const className = Astro.props.class;
           gpsTxt.textContent = t("widget.weather.gpsLocating", "定位中…");
         navigator.geolocation.getCurrentPosition(
           function (pos) {
-            var la = pos.coords.latitude;
-            var lo = pos.coords.longitude;
+            var lat = pos.coords.latitude;
+            var lon = pos.coords.longitude;
             gpsBtn.disabled = false;
-            if (gpsTxt) gpsTxt.textContent = gpsLabel;
+            if (gpsTxt) gpsTxt.textContent = label;
             fetch(
-              "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" +
-                la +
+              URL_REVERSE +
+                "?latitude=" +
+                lat +
                 "&longitude=" +
-                lo +
+                lon +
                 "&localityLanguage=zh",
             )
               .then(function (r) {
                 return r.json();
               })
               .then(function (j) {
-                var nm =
+                var n =
                   (j && (j.city || j.locality || j.principalSubdivision)) ||
                   t("widget.weather.currentLoc", "当前位置");
-                setGpsCache(la, lo, nm);
-                fetchWx(la, lo, nm);
+                setGpsCache(lat, lon, n);
+                fetchWx(lat, lon, n);
               })
               .catch(function () {
-                var nm = t("widget.weather.currentLoc", "当前位置");
-                setGpsCache(la, lo, nm);
-                fetchWx(la, lo, nm);
+                var n = t("widget.weather.currentLoc", "当前位置");
+                setGpsCache(lat, lon, n);
+                fetchWx(lat, lon, n);
               });
           },
           function (err) {
             gpsBtn.disabled = false;
-            if (gpsTxt) {
+            if (gpsTxt)
               gpsTxt.textContent =
                 err && err.code === 1
                   ? t("widget.weather.gpsDenied", "已拒绝授权")
                   : t("widget.weather.locFail", "定位失败，请在设置中填写城市");
-              setTimeout(function () {
-                gpsTxt.textContent = gpsLabel;
-              }, 2500);
-            }
+            // 提示语几秒后还原成按钮文案，避免一直停在错误态
+            setTimeout(function () {
+              if (gpsTxt) gpsTxt.textContent = label;
+            }, GPS_HINT_RESET);
           },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 },
+          {
+            enableHighAccuracy: true,
+            timeout: GPS_TIMEOUT,
+            maximumAge: GPS_MAX_AGE,
+          },
         );
       });
     }
 
-    // ---- 免 Key 链路（默认）：城市名 geocode → 实况 / GPS 缓存 / IP 定位 ----
-    function openMeteoChain(city) {
-      if (city) {
-        geocodeCity(city);
-        return;
-      }
-      var gc = getGpsCache();
-      if (gc) {
-        fetchWx(
-          gc.lat,
-          gc.lon,
-          gc.name || t("widget.weather.currentLoc", "当前位置"),
-        );
-        return;
-      }
-      ipGeo();
-    }
-
-    // ---- 腾讯链路（tencent_key 已配置时优先；失败/限流一律回退免 Key 兜底，保证天气始终显示）----
-    var API_BASE = "https://apis.map.qq.com/ws";
-    var IP_CACHE_KEY = "weather_ip_cache"; // 与欢迎弹窗共享：4 小时 TTL
-    var IP_CACHE_TTL = 4 * 60 * 60 * 1000;
-
-    var _cbIdx = 0;
+    // ---- 腾讯链路（tencent_key 已配置时优先；失败/限流一律回退免 Key 兜底）----
+    // JSONP 通道来自 Layout 注入的 __etherealTencent（与欢迎弹窗共用一份实现）
     function jsonp(url) {
-      return new Promise(function (resolve, reject) {
-        var cbName = "__ethereal_tencent_cb_" + ++_cbIdx;
-        var sep = url.indexOf("?") === -1 ? "?" : "&";
-        var script = document.createElement("script");
-        script.src = url + sep + "callback=" + cbName;
-        script.onerror = function () {
-          reject(new Error("JSONP request failed"));
-          cleanup();
-        };
-        var timer = setTimeout(function () {
-          reject(new Error("JSONP timeout"));
-          cleanup();
-        }, 10000);
-        function cleanup() {
-          clearTimeout(timer);
-          try {
-            delete window[cbName];
-          } catch (e) {
-            window[cbName] = undefined;
-          }
-          if (script.parentNode) script.parentNode.removeChild(script);
-        }
-        window[cbName] = function (data) {
-          resolve(data);
-          cleanup();
-        };
-        document.head.appendChild(script);
-      });
+      return tencent
+        ? tencent.jsonp(url)
+        : Promise.reject(new Error("tencent helper unavailable"));
     }
 
-    function getCachedAdcode() {
-      try {
-        var raw = sessionStorage.getItem(IP_CACHE_KEY);
-        if (!raw) return null;
-        var d = JSON.parse(raw);
-        if (d.adcode && Date.now() - d.t < IP_CACHE_TTL) return d.adcode;
-      } catch (e) {}
-      return null;
-    }
-    function setCachedAdcode(adcode, adInfo) {
-      try {
-        sessionStorage.setItem(
-          IP_CACHE_KEY,
-          JSON.stringify({
-            adcode: adcode,
-            ad_info: adInfo || null,
-            t: Date.now(),
-          }),
-        );
-      } catch (e) {}
-    }
-
-    // 腾讯中文天气描述 → WMO 码（复用统一 render/i18n/图标口径）
+    // 腾讯中文天气描述 → WMO 码（复用统一的 render / i18n / 图标口径）
     function tencentCondToWmo(w) {
       w = String(w || "").replace(/\s+/g, "");
       if (/雷|冰雹/.test(w)) return 95;
@@ -625,8 +629,7 @@ const className = Astro.props.class;
         return 71;
       }
       if (/雨/.test(w)) {
-        if (/特大|暴雨|大到/.test(w)) return 65;
-        if (/大雨/.test(w)) return 65;
+        if (/特大|暴雨|大到|大雨/.test(w)) return 65;
         if (/中雨/.test(w)) return 63;
         return 61;
       }
@@ -638,19 +641,21 @@ const className = Astro.props.class;
       return 2;
     }
 
+    // 腾讯实况归一成与 open-meteo 相同的 weather 对象，交给 render；
+    // 风向/风力是腾讯独有字段，故在 render 之后补写 aux（wind 留空避免先写一次 0）。
     function renderTencent(rt) {
       var info = rt.infos || {};
-      var night = new Date().getHours() >= 18 || new Date().getHours() < 6;
-      var d = {
+      var hour = new Date().getHours();
+      var w = {
         name: rt.district || rt.city || rt.province || "",
         code: tencentCondToWmo(info.weather),
         temp: parseFloat(info.temperature),
-        wind: 0,
+        wind: null,
         hum: parseFloat(info.humidity),
-        day: !night,
+        day: !(hour >= 18 || hour < 6),
       };
-      setCache(d);
-      render(d);
+      setCache(w);
+      render(w);
       if (elAux) {
         var windText =
           ((info.wind_direction || "") + (info.wind_power_v2 || "")).trim() ||
@@ -665,10 +670,10 @@ const className = Astro.props.class;
       }
     }
 
-    function tencentChain(city, key) {
-      function fetchTencentWeather(adcode) {
+    function tencentChain(name, key) {
+      function fetchWeather(adcode) {
         jsonp(
-          API_BASE +
+          tencent.base +
             "/weather/v1/?key=" +
             key +
             "&adcode=" +
@@ -678,52 +683,35 @@ const className = Astro.props.class;
           .then(function (data) {
             if (data && data.status === 0 && data.result)
               renderTencent(data.result);
-            else openMeteoChain(city);
+            else openMeteoChain(name);
           })
           .catch(function () {
-            openMeteoChain(city);
+            openMeteoChain(name);
           });
       }
-      if (/^\d+$/.test(city)) {
-        fetchTencentWeather(city);
-        return;
-      }
+      if (/^\d+$/.test(name)) return fetchWeather(name);
       var cachedAdcode = getCachedAdcode();
-      if (cachedAdcode) {
-        fetchTencentWeather(cachedAdcode);
-        return;
-      }
-      jsonp(API_BASE + "/location/v1/ip?key=" + key + "&output=jsonp")
+      if (cachedAdcode) return fetchWeather(cachedAdcode);
+      jsonp(tencent.base + "/location/v1/ip?key=" + key + "&output=jsonp")
         .then(function (data) {
-          if (
-            data &&
-            data.status === 0 &&
-            data.result &&
-            data.result.ad_info &&
-            data.result.ad_info.adcode
-          ) {
-            var code = String(data.result.ad_info.adcode);
-            setCachedAdcode(code, data.result.ad_info);
-            fetchTencentWeather(code);
+          var info =
+            data && data.status === 0 && data.result && data.result.ad_info;
+          if (info && info.adcode) {
+            tencent.writeIp(info.adcode, info);
+            fetchWeather(String(info.adcode));
           } else {
-            openMeteoChain(city);
+            openMeteoChain(name);
           }
         })
         .catch(function () {
-          openMeteoChain(city);
+          openMeteoChain(name);
         });
     }
 
     // ---- 主流程：缓存 → 腾讯链路（有 Key）→ 免 Key 链路（默认）----
-    var city = (card.getAttribute("data-city") || "").trim();
-    var tencentKey = (card.getAttribute("data-tencent-key") || "").trim();
     var cached = getCache();
-    if (cached) {
-      render(cached);
-    } else if (tencentKey) {
-      tencentChain(city, tencentKey);
-    } else {
-      openMeteoChain(city);
-    }
+    if (cached) render(cached);
+    else if (tencentKey) tencentChain(cityName, tencentKey);
+    else openMeteoChain(cityName);
   })();
 </script>
