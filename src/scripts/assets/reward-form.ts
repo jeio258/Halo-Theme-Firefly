@@ -8,13 +8,7 @@ import {
   resetPageScrollLock,
   unlockPageScroll,
 } from "../../utils/scroll-lock";
-
-// 客户端 i18n：复用 Layout.astro 注入的全局助手（缺失时退化为回退文案）
-var t =
-  window.__etherealI18n ||
-  function (_k: string, f: string) {
-    return f;
-  };
+import { t } from "../../utils/i18n";
 
 interface RewardFormState {
   /** 当前验证码挑战 id（提交时随 payload 带上） */

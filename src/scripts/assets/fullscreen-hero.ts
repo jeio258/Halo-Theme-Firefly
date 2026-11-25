@@ -8,6 +8,7 @@
 // 边界：非首页标题隐藏由 CSS / banner-text-hidden 类负责，脚本不碰 display、只清内联
 //   opacity；访客关闭标题的 opacity:0 !important 优先。
 import { readDurBannerMs } from "../../utils/dur-banner";
+import { onSwupReady } from "../../utils/swup-hooks";
 
 (() => {
   if (typeof window === "undefined" || window.__fullscreenHeroBound) return;
@@ -232,11 +233,7 @@ import { readDurBannerMs } from "../../utils/dur-banner";
     hooks.on("page:view", refresh);
     hooks.on("animation:in:end", refresh);
   };
-  if (window.swup?.hooks) {
-    bindSwupHooks();
-  } else {
-    document.addEventListener("swup:enable", bindSwupHooks, { once: true });
-  }
+  onSwupReady(bindSwupHooks);
 
   // 标题由隐藏变可见时（banner:visible：app.ts 的标题显现 / syncBannerOverlay、
   // banner-responsive 的滚动兜底都会派发）立即同步：标题 translateY 须按当前滚动

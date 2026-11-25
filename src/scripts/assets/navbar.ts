@@ -4,6 +4,7 @@
 // 下拉面板，切 #nav-menu-panel 的 float-panel-closed 类）；模式由 DOM 判定（#nav-menu-root
 // 存在即 drawer）。导航栏在 Swup 容器外，脚本只执行一次（defer），window 标志防重复绑定。
 import { lockPageScroll, unlockPageScroll } from "../../utils/scroll-lock";
+import { onSwupReady } from "../../utils/swup-hooks";
 if (!window.__navbarPanelToggleBound) {
   window.__navbarPanelToggleBound = true;
 
@@ -218,11 +219,7 @@ if (!window.__navbarPanelToggleBound) {
       }
     });
   }
-  if (window.swup && window.swup.hooks) {
-    bindSwupHooks();
-  } else {
-    document.addEventListener("swup:enable", bindSwupHooks);
-  }
+  onSwupReady(bindSwupHooks);
 }
 
 // 桌面导航在触屏设备上的子菜单展开（与移动/平板抽屉菜单无关）。

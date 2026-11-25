@@ -1,13 +1,7 @@
 // @ts-nocheck —— 主体为从 post.bundle.js 提取的 legacy 画布海报代码（800+ 行 ES5），保持
 // 逐字迁移不作类型改造；仅外围 loadQRCode 为新逻辑。产物 public/assets/post-share.js
 //（esbuild 编译，勿手改）：文章分享图生成器 + 当前文章 URL 同步。
-
-// 客户端 i18n：复用 Layout.astro 注入的全局助手（缺失时退化为回退文案）
-var t =
-  window.__etherealI18n ||
-  function (k, f) {
-    return f;
-  };
+import { t } from "../../utils/i18n";
 
 // 文章协议区 URL 同步（支持 Swup 页面切换）
 (function () {

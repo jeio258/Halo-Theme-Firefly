@@ -3,6 +3,8 @@
 //   2. 最近提交：按 data-time 归并文章 + 瞬间两组行，并按 data-count 截断；
 //   3. 订阅卡片：自建表单直连 flow-post 插件公开接口（匿名角色已放行）。
 // 其余字段均服务端直出；换页由 SwupScriptsPlugin 重执行，data-rendered 守卫防重复。
+import { t } from "../../utils/i18n";
+
 (function () {
   function splitLines(raw) {
     if (!raw) return [];
@@ -90,12 +92,6 @@
 // 表单 UI 自建（about.css ⑫-B）：插件自带 follow-card 是 Shadow DOM，无法主题化。
 (function () {
   var API_URL = "/apis/api.flow.post.kunkunyu.com/v1alpha1/follows/-/submit";
-  var t =
-    window.__etherealI18n ||
-    function (_key, fallback) {
-      return fallback;
-    };
-
   function init() {
     var form = document.getElementById("about-subscribe-form");
     if (!form || form.dataset.bound) return;

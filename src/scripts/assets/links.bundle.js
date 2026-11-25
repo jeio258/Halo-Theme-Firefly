@@ -1,7 +1,7 @@
 // 友链页脚本合并（构建产物：public/assets/links.bundle.js，源码在 src/scripts/assets/，esbuild 编译，勿手改产物）
 // 由 requirements / collapse / copy / link-apply / random-visit / search 合并，各 IIFE 守卫独立保留；
 // link-apply 与 random-visit 的原 th:if 门控移除，改由内部守卫（元素不存在即不绑定/不执行）
-
+import { t } from "../../utils/i18n";
 import {
   lockPageScroll,
   resetPageScrollLock,
@@ -522,11 +522,6 @@ import {
   if (window.__randomVisitBound) return;
   window.__randomVisitBound = true;
 
-  var t =
-    window.__etherealI18n ||
-    function (_key, fallback) {
-      return fallback;
-    };
   var SPIN_DELAY = 1500; // 旋转等待时长（ms）
   var spinning = false; // 防止重复点击
 

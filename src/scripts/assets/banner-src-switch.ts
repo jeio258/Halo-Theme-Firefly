@@ -4,23 +4,12 @@
 // 配置来自 #theme-config JSON；未启用移动端独立来源或移动端无有效来源时早退。本脚本会被
 // SwupScriptsPlugin 每次换页重执行，而 #banner 位于容器外跨页持久，故全局守卫只绑一次
 // matchMedia 监听。
+import { getThemeConfig } from "./_theme-config";
+
 (function () {
-  // #theme-config JSON 解析（写/读 window.__themeConfig 缓存，与
-  // scripts/assets/_theme-config.ts 共享契约，避免重复 JSON.parse）
-  var cfg = null;
-  var cachedCfg = window.__themeConfig;
-  if (cachedCfg !== undefined) {
-    cfg = cachedCfg;
-  } else {
-    var configEl = document.getElementById("theme-config");
-    if (!configEl) return;
-    try {
-      cfg = JSON.parse(configEl.textContent || configEl.innerText);
-    } catch (e) {
-      return;
-    }
-    window.__themeConfig = cfg;
-  }
+  // 配置统一由 _theme-config.ts 读取（含 window.__themeConfig 缓存与解析失败兜底）
+  var cfg = getThemeConfig();
+  if (!cfg) return;
   var bannerCfg =
     cfg && cfg.style && cfg.style.bannerStyle ? cfg.style.bannerStyle : null;
   if (!bannerCfg || bannerCfg.useMobileSrc !== true) return;

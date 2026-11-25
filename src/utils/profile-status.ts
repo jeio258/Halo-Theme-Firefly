@@ -9,6 +9,7 @@
 
 import { getThemeConfig, setThemeConfig } from "./theme-config";
 import { lockPageScroll, unlockPageScroll } from "./scroll-lock";
+import { onSwupReady } from "./swup-hooks";
 
 // 客户端 i18n：复用 Layout.astro 注入的全局助手（缺失时退化为回退文案）
 const t =
@@ -633,11 +634,7 @@ export function initProfileStatus(): void {
       swup.hooks.on("page:view", syncTooltip);
     }
   };
-  if ((window as unknown as { swup?: { hooks?: unknown } }).swup?.hooks) {
-    bindSwup();
-  } else {
-    document.addEventListener("swup:enable", bindSwup);
-  }
+  onSwupReady(bindSwup);
 
   // document 级事件委托：badge 跨页面持久，一次绑定终身有效
   document.addEventListener("click", (e) => {

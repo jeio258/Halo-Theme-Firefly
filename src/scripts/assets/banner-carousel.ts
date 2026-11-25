@@ -5,6 +5,8 @@
 // style.bannerStyle.carousel.dwellMs（不随档位）。移动端独立来源开启时双容器
 // （#banner / #banner-mobile）各自独立初始化；隐藏容器的 IntersectionObserver 自然
 // 暂停定时器，无需跨容器联动；首图 lazy 在容器被 CSS 显示后立即加载。
+import { getThemeConfig } from "./_theme-config";
+
 (function () {
   // 本脚本会被 SwupScriptsPlugin 在每次换页时克隆重执行，而 #banner 位于
   // Layout（Swup 容器外）跨页面持久——不守卫则每次换页叠加一套定时器链 +
@@ -18,21 +20,8 @@
   if (c1) containers.push(c1);
   if (c2) containers.push(c2);
 
-  // #theme-config JSON 解析（写/读 window.__themeConfig 缓存，与
-  // scripts/assets/_theme-config.ts 共享契约，避免重复 JSON.parse）
-  var cfg = null;
-  var cachedCfg = window.__themeConfig;
-  if (cachedCfg !== undefined) {
-    cfg = cachedCfg;
-  } else {
-    var configEl = document.getElementById("theme-config");
-    if (configEl) {
-      try {
-        cfg = JSON.parse(configEl.textContent || configEl.innerText);
-      } catch (e) {}
-      window.__themeConfig = cfg;
-    }
-  }
+  // 配置统一由 _theme-config.ts 读取（含 window.__themeConfig 缓存与解析失败兜底）
+  var cfg = getThemeConfig();
   var bannerCfg =
     cfg && cfg.style && cfg.style.bannerStyle ? cfg.style.bannerStyle : null;
   var carouselCfg = bannerCfg && bannerCfg.carousel ? bannerCfg.carousel : {};

@@ -53,6 +53,7 @@ import {
   initPhotosGallery,
   destroyAll,
 } from "../utils/content-media";
+import { onSwupReady } from "../utils/swup-hooks";
 
 // ── 自定义滚动条（懒加载，等入场动画结束后初始化） ──
 let scrollbarInitialized = false;
@@ -959,11 +960,7 @@ init();
 void initContentLightbox();
 void initPhotosGallery();
 
-if (window?.swup?.hooks) {
-  setupSwup();
-} else {
-  document.addEventListener("swup:enable", setupSwup);
-}
+onSwupReady(setupSwup);
 
 scrollFunction();
 initExternalLinkRedirect();

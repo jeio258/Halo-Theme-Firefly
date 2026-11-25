@@ -3,14 +3,8 @@
 //
 // 收款码 / 文案 / 爱发电地址由服务端经按钮 data-* 传入（空串 = 未配置）。
 import { getThemeConfig } from "./_theme-config";
+import { t } from "../../utils/i18n";
 import { lockPageScroll, unlockPageScroll } from "../../utils/scroll-lock";
-
-// 客户端 i18n：复用 Layout.astro 注入的全局助手（缺失时退化为回退文案）
-var t =
-  window.__etherealI18n ||
-  function (_k, f) {
-    return f;
-  };
 
 (function () {
   "use strict";
